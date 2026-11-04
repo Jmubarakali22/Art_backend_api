@@ -1,0 +1,18 @@
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment secrets
+.env
+
+# WhatsApp Auth Session Tokens (Local Baileys connection state)
+whatsapp_auth/
+
+# Uploads (ignore uploaded media, keep directory)
+uploads/*
+!uploads/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db

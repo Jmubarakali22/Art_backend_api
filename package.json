@@ -1,0 +1,37 @@
+{
+  "name": "ar-rahman-trust-admin-backend",
+  "version": "1.0.0",
+  "description": "Express.js and MySQL Backend API for Ar Rahman Trust Admin Panel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node database/initDb.js"
+  },
+  "keywords": [
+    "express",
+    "mysql",
+    "admin-panel",
+    "ar-rahman-trust"
+  ],
+  "author": "Ar Rahman Trust",
+  "license": "ISC",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "imagekit": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.12.0",
+    "nodemailer": "^10.3.1",
+    "pdfkit": "^0.20.2",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4"
+  }
+}
