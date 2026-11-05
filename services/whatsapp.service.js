@@ -120,6 +120,28 @@ class WhatsAppService {
     return result;
   }
 
+  async sendTextMessage(phone, messageText) {
+    if (this.status !== 'connected' || !this.sock) {
+      throw new Error('WhatsApp is not connected on the server. Please scan the QR code to link your WhatsApp account once.');
+    }
+
+    let cleanPhone = (phone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+    else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) cleanPhone = '91' + cleanPhone.substring(1);
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      throw new Error('Invalid mobile phone number provided for WhatsApp delivery.');
+    }
+
+    const jid = `${cleanPhone}@s.whatsapp.net`;
+
+    const result = await this.sock.sendMessage(jid, {
+      text: messageText
+    });
+
+    return result;
+  }
+
   async logout() {
     if (this.sock) {
       try {

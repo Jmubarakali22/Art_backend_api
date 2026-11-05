@@ -234,4 +234,131 @@ router.post('/send-pdf/:id', upload.single('pdf'), async (req, res) => {
   }
 });
 
+// Default reminder message template
+const getDefaultReminderMessage = () => `*AR RAHMAN TRUST - NOBLE CHARITY REMINDER*
+_Helping Needy People • Pernambut & Surrounding Villages_
+*Regd. Charity No:* 04/16/2020
+----------------------------------------
+Assalamu Alaikum wa Rahmatullahi wa Barakatuh *{name}*,
+
+We pray this message reaches you and your family in good health and highest iman.
+
+As Allah (SWT) reminds us in the Holy Quran:
+_"The example of those who spend their wealth in the way of Allah is like a seed of grain which grows seven spikes; in each spike is a hundred grains." (Al-Baqarah 2:261)_
+
+Your noble past contributions have brought direct food, emergency medicine, and educational aid to needy families across Pernambut.
+
+As our charity drives continue for this month, we humbly invite you to renew your noble contribution for:
+🤲 *{cause}*
+
+💳 *Trust Official Bank & UPI Details:*
+• *Bank:* State Bank of India (Pernambut Branch)
+• *Account Name:* Ar Rahman Trust
+• *Account No:* 39485710293
+• *IFSC Code:* SBIN0001824
+• *UPI ID / GPay / PhonePe:* arrahmantrust@sbi
+• *Registered Charity No:* 04/16/2020
+
+"May Allah (SWT) accept your charity, grant immense barakah in your livelihood, and safeguard your family. Jazakallahu Khairan."
+
+*Ar Rahman Trust, Pernambut*
+📞 Inquiries / Office: +91 96290 88776`;
+
+// Send WhatsApp Donation Reminder (Single or Multiple Bulk Donors)
+router.post('/send-reminder', async (req, res) => {
+  try {
+    const { recipients, messageTemplate } = req.body;
+
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please select at least one donor recipient.' });
+    }
+
+    const status = whatsappService.getStatus();
+    if (!status.connected) {
+      return res.status(400).json({
+        success: false,
+        requiresAuth: true,
+        message: 'WhatsApp is not connected on the server. Please link your WhatsApp device via QR code first.',
+        qr: status.qr
+      });
+    }
+
+    const results = [];
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      const phone = recipient.donor_phone || recipient.phone;
+      const name = recipient.donor_name || recipient.name || 'Noble Donor';
+      const cause = (recipient.donation_type || 'General Sadaqah & Welfare').toUpperCase();
+      const amount = recipient.amount ? `₹${Number(recipient.amount).toLocaleString('en-IN')}` : '';
+
+      if (!phone) {
+        failedCount++;
+        results.push({
+          id: recipient.id,
+          name,
+          phone: 'N/A',
+          status: 'failed',
+          error: 'No phone number provided'
+        });
+        continue;
+      }
+
+      // Customize template placeholders for each donor
+      let finalMessage = (messageTemplate && messageTemplate.trim()) || getDefaultReminderMessage();
+      finalMessage = finalMessage
+        .replace(/\{name\}/gi, name)
+        .replace(/\{donor_name\}/gi, name)
+        .replace(/\{cause\}/gi, cause)
+        .replace(/\{amount\}/gi, amount)
+        .replace(/\{phone\}/gi, phone);
+
+      try {
+        await whatsappService.sendTextMessage(phone, finalMessage);
+        sentCount++;
+        results.push({
+          id: recipient.id,
+          name,
+          phone,
+          status: 'sent'
+        });
+
+        // Delay 1.2s between messages when multiple to avoid WhatsApp rate limits
+        if (recipients.length > 1 && i < recipients.length - 1) {
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      } catch (err) {
+        console.error(`Failed to send reminder to ${name} (${phone}):`, err.message);
+        failedCount++;
+        results.push({
+          id: recipient.id,
+          name,
+          phone,
+          status: 'failed',
+          error: err.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Donation reminder delivery finished! Sent: ${sentCount}, Failed: ${failedCount}`,
+      summary: {
+        total: recipients.length,
+        sent: sentCount,
+        failed: failedCount
+      },
+      results
+    });
+  } catch (err) {
+    console.error('Send WhatsApp Reminder error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to send WhatsApp reminder'
+    });
+  }
+});
+
 module.exports = router;
