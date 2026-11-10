@@ -1,9 +1,9 @@
 USE `ar_rahman_trust_db`;
 
--- Seed Admins (Default password: "password123", bcrypt hashed: $2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi)
+-- Seed Admins (Password: "786@arrahman", bcrypt hashed: $2a$10$WWf2p.LyS6uSNO1OG3Os9OZR/rMjN3uMQ7kMF5.XScsLpuSf587te)
 INSERT INTO `admins` (`id`, `username`, `email`, `password`, `name`, `role`) VALUES
-(1, 'admin', 'admin@arrahmantrust.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Ar-Rahman Super Admin', 'superadmin'),
-(2, 'trustee', 'trustee@arrahmantrust.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Managing Trustee', 'admin')
+(1, 'arrahmantrust@gmail.com', 'arrahmantrust@gmail.com', '$2a$10$WWf2p.LyS6uSNO1OG3Os9OZR/rMjN3uMQ7kMF5.XScsLpuSf587te', 'Ar-Rahman Super Admin', 'superadmin'),
+(2, 'trustee', 'trustee@arrahmantrust.com', '$2a$10$WWf2p.LyS6uSNO1OG3Os9OZR/rMjN3uMQ7kMF5.XScsLpuSf587te', 'Managing Trustee', 'admin')
 ON DUPLICATE KEY UPDATE `username`=`username`;
 
 -- Seed Causes

@@ -27,8 +27,8 @@ const memoryStore = {
   admins: [
     {
       id: 1,
-      username: 'admin',
-      email: 'admin@arrahmantrust.com',
+      username: 'arrahmantrust@gmail.com',
+      email: 'arrahmantrust@gmail.com',
       password: '', // will be hashed below
       name: 'Ar-Rahman Super Admin',
       role: 'superadmin',
@@ -1084,7 +1084,7 @@ const memoryStore = {
 };
 
 // Pre-hash default admin password
-bcrypt.hash('password123', 10).then(hash => {
+bcrypt.hash('786@arrahman', 10).then(hash => {
   memoryStore.admins[0].password = hash;
   memoryStore.admins[1].password = hash;
 });
