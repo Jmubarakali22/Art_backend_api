@@ -7,8 +7,10 @@ exports.getStats = async (req, res) => {
       SELECT 
         COALESCE(SUM(amount), 0) AS totalDonationsAmount,
         COUNT(*) AS totalDonationsCount,
-        COALESCE(SUM(CASE WHEN donation_type = 'zakat' THEN amount ELSE 0 END), 0) AS totalZakat,
+        COALESCE(SUM(CASE WHEN donation_type IN ('zakat', 'zakath') THEN amount ELSE 0 END), 0) AS totalZakat,
         COALESCE(SUM(CASE WHEN donation_type = 'sadaqah' THEN amount ELSE 0 END), 0) AS totalSadaqah,
+        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution') THEN amount ELSE 0 END), 0) AS totalMonthly,
+        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution') THEN 1 ELSE 0 END), 0) AS totalMonthlyCount,
         COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pendingDonationsCount
       FROM donations
     `);
@@ -92,6 +94,8 @@ exports.getStats = async (req, res) => {
         totalDonationsCount: parseInt(donationStats[0]?.totalDonationsCount || 0, 10),
         totalZakat: parseFloat(donationStats[0]?.totalZakat || 0),
         totalSadaqah: parseFloat(donationStats[0]?.totalSadaqah || 0),
+        totalMonthly: parseFloat(donationStats[0]?.totalMonthly || 0),
+        totalMonthlyCount: parseInt(donationStats[0]?.totalMonthlyCount || 0, 10),
         pendingDonationsCount: parseInt(donationStats[0]?.pendingDonationsCount || 0, 10),
         totalCauses: parseInt(causesStats[0]?.totalCauses || 0, 10),
         activeCauses: parseInt(causesStats[0]?.activeCauses || 0, 10),
