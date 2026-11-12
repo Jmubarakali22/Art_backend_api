@@ -1,4 +1,6 @@
 const { query } = require('../config/db');
+const { uploadToImageKit } = require('../config/imagekit');
+const fs = require('fs');
 
 exports.getAll = async (req, res) => {
   try {
@@ -47,7 +49,19 @@ exports.create = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Title, category, and description are required.' });
     }
 
-    const img = req.file ? `/uploads/${req.file.filename}` : (image_url || 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_food_dist.png');
+    let img = image_url || 'https://ik.imagekit.io/baaidzoik/assets/causes/Monthly%20ration%20kit01.jpg';
+    if (req.file) {
+      const targetFolder = req.body.folder || '/assets/causes';
+      const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
+      img = ikResult.url;
+      try {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (err) {
+        console.warn('Could not remove temp uploaded file:', err.message);
+      }
+    }
 
     const sql = `
       INSERT INTO causes (title, category, description, target_amount, raised_amount, image_url, status, featured)
@@ -61,15 +75,17 @@ exports.create = async (req, res) => {
       parseFloat(raised_amount || 0),
       img,
       status,
-      featured ? 1 : 0
+      (featured === true || featured === '1' || featured === 1) ? 1 : 0
     ]);
 
     res.status(201).json({
       success: true,
       message: 'Cause created successfully',
-      id: result.insertId
+      id: result.insertId,
+      image_url: img
     });
   } catch (error) {
+    console.error('Error creating cause:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -79,14 +95,23 @@ exports.update = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const { title, category, description, target_amount, raised_amount, image_url, status, featured } = req.body;
 
-    const existing = await query('SELECT image_url FROM causes WHERE id = ?', [id]);
+    const existing = await query('SELECT * FROM causes WHERE id = ?', [id]);
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'Cause not found' });
     }
 
     let img = existing[0].image_url;
     if (req.file) {
-      img = `/uploads/${req.file.filename}`;
+      const targetFolder = req.body.folder || '/assets/causes';
+      const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
+      img = ikResult.url;
+      try {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (err) {
+        console.warn('Could not remove temp uploaded file:', err.message);
+      }
     } else if (image_url) {
       img = image_url;
     }
@@ -99,19 +124,20 @@ exports.update = async (req, res) => {
     `;
 
     await query(sql, [
-      title,
-      category,
-      description,
-      parseFloat(target_amount || 0),
-      parseFloat(raised_amount || 0),
+      title || existing[0].title,
+      category || existing[0].category,
+      description || existing[0].description,
+      target_amount !== undefined ? parseFloat(target_amount || 0) : existing[0].target_amount,
+      raised_amount !== undefined ? parseFloat(raised_amount || 0) : existing[0].raised_amount,
       img,
-      status,
-      featured ? 1 : 0,
+      status || existing[0].status,
+      featured !== undefined ? ((featured === true || featured === '1' || featured === 1) ? 1 : 0) : existing[0].featured,
       id
     ]);
 
-    res.json({ success: true, message: 'Cause updated successfully' });
+    res.json({ success: true, message: 'Cause updated successfully', image_url: img });
   } catch (error) {
+    console.error('Error updating cause:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
