@@ -108,10 +108,34 @@ exports.create = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Donor name, phone and amount are required.' });
     }
 
-    // Auto-generate receipt number
+    // Auto-generate receipt number: ART + Current Year + 4-digit sequence starting at 0001 (e.g. ART20260001)
     const year = new Date().getFullYear();
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const receipt_number = `ART-${year}-${randomSuffix}`;
+    const prefix = `ART${year}`;
+
+    let nextSeq = 1;
+    try {
+      const existingReceipts = await query(
+        `SELECT receipt_number FROM donations WHERE receipt_number LIKE ? ORDER BY id DESC`,
+        [`${prefix}%`]
+      );
+
+      if (existingReceipts && existingReceipts.length > 0) {
+        for (const row of existingReceipts) {
+          if (!row.receipt_number) continue;
+          if (row.receipt_number.startsWith(prefix)) {
+            const numStr = row.receipt_number.slice(prefix.length);
+            const parsed = parseInt(numStr, 10);
+            if (!isNaN(parsed) && parsed >= nextSeq) {
+              nextSeq = parsed + 1;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching last receipt number sequence, defaulting to 1:', e);
+    }
+
+    const receipt_number = `${prefix}${String(nextSeq).padStart(4, '0')}`;
 
     const sql = `
       INSERT INTO donations (donor_name, donor_email, donor_phone, amount, donation_type, payment_method, transaction_id, status, notes, receipt_number)

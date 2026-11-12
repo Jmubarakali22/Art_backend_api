@@ -949,7 +949,7 @@ const memoryStore = {
       payment_method: 'upi',
       transaction_id: 'UPI/2026/04819284',
       status: 'verified',
-      receipt_number: 'ART-2026-001',
+      receipt_number: 'ART20260001',
       notes: 'Zakat al-Mal contribution',
       created_at: new Date(Date.now() - 86400000 * 2).toISOString()
     },
@@ -963,7 +963,7 @@ const memoryStore = {
       payment_method: 'upi',
       transaction_id: 'UPI/2026/04918231',
       status: 'verified',
-      receipt_number: 'ART-2026-002',
+      receipt_number: 'ART20260002',
       notes: 'For tailoring center supplies',
       created_at: new Date(Date.now() - 86400000 * 4).toISOString()
     },
@@ -977,7 +977,7 @@ const memoryStore = {
       payment_method: 'bank_transfer',
       transaction_id: 'NEFT-AXIS-992819',
       status: 'verified',
-      receipt_number: 'ART-2026-003',
+      receipt_number: 'ART20260003',
       notes: 'Annual Zakat donation',
       created_at: new Date(Date.now() - 86400000 * 6).toISOString()
     },
@@ -987,12 +987,12 @@ const memoryStore = {
       donor_email: 'irfan.khan@outlook.com',
       donor_phone: '+91 97890 55443',
       amount: 1000,
-      donation_type: 'general',
+      donation_type: 'monthly_donation',
       payment_method: 'upi',
       transaction_id: 'UPI/2026/05128392',
       status: 'verified',
-      receipt_number: 'ART-2026-004',
-      notes: null,
+      receipt_number: 'ART20260004',
+      notes: 'Regular monthly sponsorship',
       created_at: new Date(Date.now() - 86400000 * 8).toISOString()
     },
     {
@@ -1001,11 +1001,11 @@ const memoryStore = {
       donor_email: 'zainab.f@gmail.com',
       donor_phone: '+91 96290 88776',
       amount: 3000,
-      donation_type: 'medical',
+      donation_type: 'sadaqah',
       payment_method: 'upi',
       transaction_id: 'UPI/2026/05238120',
       status: 'pending',
-      receipt_number: 'ART-2026-005',
+      receipt_number: 'ART20260005',
       notes: 'For Sunday free clinic medicines',
       created_at: new Date().toISOString()
     }
