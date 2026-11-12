@@ -27,10 +27,10 @@ const memoryStore = {
   admins: [
     {
       id: 1,
-      username: 'arrahmantrust@gmail.com',
+      username: 'Super Admin',
       email: 'arrahmantrust@gmail.com',
       password: '', // will be hashed below
-      name: 'Ar-Rahman Super Admin',
+      name: 'Super Admin',
       role: 'superadmin',
       avatar: null,
       created_at: new Date().toISOString()
@@ -1074,7 +1074,7 @@ const memoryStore = {
     {
       id: 1,
       admin_id: 1,
-      admin_name: 'Ar-Rahman Super Admin',
+      admin_name: 'Super Admin',
       action: 'SYSTEM_INIT',
       details: 'Ar Rahman Trust Admin Panel started',
       ip_address: '127.0.0.1',

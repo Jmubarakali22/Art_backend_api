@@ -13,9 +13,15 @@ exports.login = async (req, res) => {
       });
     }
 
+    const trimmedInput = String(username).trim();
     const admins = await query(
-      'SELECT * FROM admins WHERE username = ? OR email = ? LIMIT 1',
-      [username, username]
+      `SELECT * FROM admins 
+       WHERE username = ? 
+          OR email = ? 
+          OR LOWER(username) = LOWER(?)
+          OR (id = 1 AND LOWER(REPLACE(?, ' ', '')) = 'superadmin')
+       LIMIT 1`,
+      [trimmedInput, trimmedInput, trimmedInput, trimmedInput]
     );
 
     if (admins.length === 0) {
