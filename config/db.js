@@ -987,7 +987,7 @@ const memoryStore = {
       donor_email: 'irfan.khan@outlook.com',
       donor_phone: '+91 97890 55443',
       amount: 1000,
-      donation_type: 'monthly_donation',
+      donation_type: 'monthly_contribution',
       payment_method: 'upi',
       transaction_id: 'UPI/2026/05128392',
       status: 'verified',
@@ -1128,14 +1128,18 @@ function handleMemoryQuery(sql, params) {
   // Dashboard Aggregations
   if (s.includes('totaldonationsamount') && s.includes('from donations')) {
     const totalAmount = memoryStore.donations.reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
-    const totalZakat = memoryStore.donations.filter(d => d.donation_type === 'zakat').reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+    const totalZakat = memoryStore.donations.filter(d => ['zakat', 'zakath'].includes(d.donation_type)).reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
     const totalSadaqah = memoryStore.donations.filter(d => d.donation_type === 'sadaqah').reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+    const totalMonthly = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly'].includes(d.donation_type)).reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+    const totalMonthlyCount = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly'].includes(d.donation_type)).length;
     const pendingCount = memoryStore.donations.filter(d => d.status === 'pending').length;
     return [{
       totalDonationsAmount: totalAmount,
       totalDonationsCount: memoryStore.donations.length,
       totalZakat,
       totalSadaqah,
+      totalMonthly,
+      totalMonthlyCount,
       pendingDonationsCount: pendingCount
     }];
   }

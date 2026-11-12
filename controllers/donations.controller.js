@@ -39,13 +39,23 @@ exports.getAll = async (req, res) => {
     }
 
     if (type) {
-      whereClauses.push('donation_type = ?');
-      params.push(type);
+      if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(type)) {
+        whereClauses.push("donation_type IN ('monthly_contribution', 'monthly_donation', 'monthly')");
+      } else if (['zakat', 'zakath'].includes(type)) {
+        whereClauses.push("donation_type IN ('zakat', 'zakath')");
+      } else {
+        whereClauses.push('donation_type = ?');
+        params.push(type);
+      }
     }
 
     if (status) {
-      whereClauses.push('status = ?');
-      params.push(status);
+      if (status === 'verified') {
+        whereClauses.push("status IN ('verified', 'completed')");
+      } else {
+        whereClauses.push('status = ?');
+        params.push(status);
+      }
     }
 
     if (date) {
@@ -154,6 +164,18 @@ exports.create = async (req, res) => {
 
     const receipt_number = `${prefix}${String(nextSeq).padStart(4, '0')}`;
 
+    let finalType = donation_type || 'sadaqah';
+    if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(finalType)) {
+      finalType = 'monthly_contribution';
+    } else if (['zakat', 'zakath'].includes(finalType)) {
+      finalType = 'zakat';
+    }
+
+    let finalStatus = status || 'verified';
+    if (finalStatus === 'completed') {
+      finalStatus = 'verified';
+    }
+
     const sql = `
       INSERT INTO donations (donor_name, donor_email, donor_phone, amount, donation_type, payment_method, transaction_id, status, notes, receipt_number)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -163,10 +185,10 @@ exports.create = async (req, res) => {
       donor_email || null,
       donor_phone,
       parseFloat(amount),
-      donation_type,
+      finalType,
       payment_method,
       transaction_id || `TXN-${Date.now()}`,
-      status,
+      finalStatus,
       notes || null,
       receipt_number
     ]);
@@ -196,6 +218,18 @@ exports.update = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const { donor_name, donor_email, donor_phone, amount, donation_type, payment_method, transaction_id, status, notes } = req.body;
 
+    let finalType = donation_type || 'sadaqah';
+    if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(finalType)) {
+      finalType = 'monthly_contribution';
+    } else if (['zakat', 'zakath'].includes(finalType)) {
+      finalType = 'zakat';
+    }
+
+    let finalStatus = status || 'verified';
+    if (finalStatus === 'completed') {
+      finalStatus = 'verified';
+    }
+
     const sql = `
       UPDATE donations 
       SET donor_name = ?, donor_email = ?, donor_phone = ?, amount = ?, donation_type = ?, 
@@ -208,10 +242,10 @@ exports.update = async (req, res) => {
       donor_email || null,
       donor_phone,
       parseFloat(amount),
-      donation_type,
+      finalType,
       payment_method,
       transaction_id,
-      status,
+      finalStatus,
       notes || null,
       id
     ]);
