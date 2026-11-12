@@ -50,7 +50,7 @@ exports.getStats = async (req, res) => {
       SELECT id, donor_name, donor_phone, amount, donation_type, payment_method, status, created_at, receipt_number
       FROM donations
       ORDER BY created_at DESC
-      LIMIT 6
+      LIMIT 5
     `);
 
     // 7. Monthly donations breakdown (Last 6 months)
