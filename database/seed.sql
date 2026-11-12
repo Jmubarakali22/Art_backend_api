@@ -8,11 +8,9 @@ ON DUPLICATE KEY UPDATE `username`=`username`;
 
 -- Seed Causes
 INSERT INTO `causes` (`title`, `category`, `description`, `target_amount`, `raised_amount`, `image_url`, `status`, `featured`) VALUES
-('Daily Food Distribution Drive', 'Food Relief', 'Providing hot nutritious meals and monthly dry food kits to needy families in Pernambut and surrounding rural villages.', 150000.00, 98500.00, 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_food_dist.png', 'active', 1),
-('Free Tailoring Training Center for Women', 'Women Empowerment', 'Equipping underprivileged women and widows with certified tailoring, sewing machine mastery, and self-employment skills.', 100000.00, 75000.00, 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_tailoring_class.png', 'active', 1),
-('Free Medicine & Regular Medical Camps', 'Healthcare', 'Conducting weekly health check-up camps, free diagnostic tests, and supplying essential medicines to elderly and sick villagers.', 200000.00, 142000.00, 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_medical_help.png', 'active', 1),
-('Needy & Orphan Students Education Fund', 'Education', 'Sponsoring school fees, textbooks, uniforms, and stationery supplies for deserving students from low-income families.', 120000.00, 68000.00, 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_food_dist.png', 'active', 0),
-('Ramadan Ration Kits & Eid Gift Distribution', 'Community Relief', 'Delivering grocery ration packages to 300+ destitute families during holy months to ensure no family stays hungry.', 250000.00, 250000.00, 'https://ik.imagekit.io/baaidzoik/assets/gallery/AR_food_dist.png', 'completed', 0);
+('Monthly Ration Kit', 'Food Relief', 'Distributing food packages and Zakat funds to families in need.', 150000.00, 98500.00, 'https://ik.imagekit.io/baaidzoik/assets/causes/food_dist.png', 'active', 1),
+('Free Tailoring Classes', 'Women Empowerment', 'Teaching tailoring skills to women, helping them earn a steady income and support their families.', 100000.00, 75000.00, 'https://ik.imagekit.io/baaidzoik/assets/causes/Tailoring_class.png', 'active', 1),
+('Free Medicine & Medical Camp', 'Healthcare', 'Providing free medicines and basic healthcare support to families who can\'t afford treatment.', 200000.00, 142000.00, 'https://ik.imagekit.io/baaidzoik/assets/causes/medicine.png', 'active', 1);
 
 -- Seed Gallery
 INSERT INTO `gallery` (`title`, `caption`, `category`, `image_url`, `order_num`, `is_visible`) VALUES
