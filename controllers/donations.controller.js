@@ -17,6 +17,9 @@ exports.getAll = async (req, res) => {
       search = '',
       type = '',
       status = '',
+      startDate = '',
+      endDate = '',
+      date = '',
       sortBy = 'created_at',
       sortOrder = 'DESC'
     } = req.query;
@@ -43,6 +46,20 @@ exports.getAll = async (req, res) => {
     if (status) {
       whereClauses.push('status = ?');
       params.push(status);
+    }
+
+    if (date) {
+      whereClauses.push('DATE(created_at) = ?');
+      params.push(date);
+    } else {
+      if (startDate) {
+        whereClauses.push('DATE(created_at) >= ?');
+        params.push(startDate);
+      }
+      if (endDate) {
+        whereClauses.push('DATE(created_at) <= ?');
+        params.push(endDate);
+      }
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
