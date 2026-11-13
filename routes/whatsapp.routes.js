@@ -74,8 +74,8 @@ const generatePdfBuffer = (donation) => {
       doc.moveDown(0.6);
 
       // Pill badge: Official Receipt
-      doc.rect(170, doc.y, 255, 22).fillAndStroke('#e8f5e9', '#86efac');
-      doc.fillColor('#166534').fontSize(10).font('Helvetica-Bold').text('OFFICIAL DONATION & ZAKAT RECEIPT', 170, doc.y - 17, { width: 255, align: 'center' });
+      doc.rect(235, doc.y, 125, 22).fillAndStroke('#e8f5e9', '#86efac');
+      doc.fillColor('#166534').fontSize(10).font('Helvetica-Bold').text('RECEIPT', 235, doc.y - 17, { width: 125, align: 'center' });
       doc.moveDown(1.5);
 
       // Divider
@@ -92,8 +92,8 @@ const generatePdfBuffer = (donation) => {
       doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Date of Contribution:', 240, metaY + 6);
       doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text(dateStr, 240, metaY + 18);
 
-      doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Financial Year:', 430, metaY + 6);
-      doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text('2026 - 2027', 430, metaY + 18);
+      doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Registered Charity No.:', 380, metaY + 6, { width: 150, align: 'right' });
+      doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text('04/16/2020', 380, metaY + 18, { width: 150, align: 'right' });
 
       doc.y = metaY + 48;
 
@@ -136,24 +136,27 @@ const generatePdfBuffer = (donation) => {
 
       doc.y = duaY + 60;
 
-      // Verification & Signatory Row
+      // Official Trust Stamp (Circular Rubber Stamp) & Signatory Row
       const sigY = doc.y;
       doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, sigY).lineTo(545, sigY).stroke();
 
-      // Seal
-      doc.circle(95, sigY + 45, 24).lineWidth(2).strokeColor('#16a34a').stroke();
-      doc.fillColor('#16a34a').fontSize(8).font('Helvetica-Bold').text('VERIFIED', 70, sigY + 38, { width: 50, align: 'center' });
-      doc.fontSize(7).text('TRUST SEAL', 70, sigY + 48, { width: 50, align: 'center' });
-      doc.fillColor('#15803d').fontSize(9).font('Helvetica-Bold').text('OFFICIAL RECORD', 130, sigY + 35);
-      doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Regd. 04/16/2020 • Pernambut', 130, sigY + 48);
+      // Official Ar Rahman Trust Rubber Stamp
+      const stampCenterX = 110;
+      const stampCenterY = sigY + 44;
+      doc.circle(stampCenterX, stampCenterY, 32).lineWidth(2).strokeColor('#166534').stroke();
+      doc.circle(stampCenterX, stampCenterY, 28).lineWidth(1).dash(3, { space: 2 }).strokeColor('#166534').stroke();
+      doc.undash();
+      doc.fillColor('#166534').fontSize(6.5).font('Helvetica-Bold').text('AR RAHMAN TRUST', stampCenterX - 35, stampCenterY - 20, { width: 70, align: 'center' });
+      doc.strokeColor('#166534').lineWidth(0.8).moveTo(stampCenterX - 24, stampCenterY - 7).lineTo(stampCenterX + 24, stampCenterY - 7).stroke();
+      doc.fillColor('#15803d').fontSize(6.5).font('Helvetica-Bold').text('VERIFIED & CREDITED', stampCenterX - 35, stampCenterY - 4, { width: 70, align: 'center' });
+      doc.strokeColor('#166534').lineWidth(0.8).moveTo(stampCenterX - 24, stampCenterY + 7).lineTo(stampCenterX + 24, stampCenterY + 7).stroke();
+      doc.fillColor('#166534').fontSize(5.5).font('Helvetica').text('PERNAMBUT', stampCenterX - 30, stampCenterY + 10, { width: 60, align: 'center' });
+      doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
       // Signatory
       doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorized Signatory', 360, sigY + 30, { width: 170, align: 'right' });
       doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee • Pernambut', 360, sigY + 44, { width: 170, align: 'right' });
       doc.fillColor('#64748b').fontSize(8).text('Ar Rahman Trust, Vellore Dist.', 360, sigY + 56, { width: 170, align: 'right' });
-
-      // Footer note
-      doc.fillColor('#94a3b8').fontSize(8).font('Helvetica').text('Official Electronic Charity Receipt • Regd. Charity No. 04/16/2020 • Ar Rahman Trust, Pernambut • Helping Needy People', 50, 775, { width: 495, align: 'center' });
 
       doc.end();
     } catch (err) {

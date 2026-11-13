@@ -470,7 +470,7 @@ exports.getPublicReceipt = async (req, res) => {
           Registered Charity No. <strong style="color: #0F3D63;">04/16/2020</strong> &bull; 112, Small Mosque Street, Pernambut, Vellore Dist., Tamil Nadu - 635810
         </div>
         <div class="d-inline-block mt-2 px-3 py-1 text-uppercase fw-bold" style="background: #e8f5e9; color: #166534; font-size: 11px; border-radius: 20px; border: 1px solid #bbf7d0; letter-spacing: 0.5px;">
-          Official Donation &amp; Zakat Receipt
+          Receipt
         </div>
       </div>
 
@@ -485,8 +485,8 @@ exports.getPublicReceipt = async (req, res) => {
           <strong class="text-dark">${dateStr}</strong>
         </div>
         <div class="col-12 col-sm-4 text-center text-sm-end">
-          <span class="text-muted" style="font-size: 11px;">Financial Year:</span><br>
-          <strong class="text-dark">2026 - 2027</strong>
+          <span class="text-muted" style="font-size: 11px;">Registered Charity No.:</span><br>
+          <strong class="text-dark">04/16/2020</strong>
         </div>
       </div>
 
@@ -529,13 +529,23 @@ exports.getPublicReceipt = async (req, res) => {
       <!-- Official Stamp & Signatory Footer (Responsive Row) -->
       <div class="row pt-3 border-top align-items-center" style="border-top: 1px solid #e2e8f0 !important;">
         <div class="col-12 col-sm-6 d-flex justify-content-center justify-content-sm-start mb-3 mb-sm-0">
-          <div class="d-flex align-items-center gap-2">
-            <div class="rounded-circle d-flex align-items-center justify-content-center text-success border border-2 border-success" style="width: 44px; height: 44px; background: #ecfdf5;">
-              <i class="bi bi-shield-check fs-4"></i>
-            </div>
-            <div class="text-start">
-              <div class="fw-bold text-success text-uppercase" style="font-size: 11px;">Verified &amp; Credited</div>
-              <div class="text-muted" style="font-size: 10px;">Official Seal &bull; Regd. 04/16/2020</div>
+          <!-- Official Ar Rahman Trust Rubber Stamp -->
+          <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 112px; height: 112px; border: 2.5px solid #166534; border-radius: 50%; padding: 3px; box-sizing: border-box; background: rgba(240, 253, 244, 0.45); transform: rotate(-3deg); box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.15);">
+            <div style="width: 100%; height: 100%; border: 1.5px dashed #166534; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; box-sizing: border-box;">
+              <div style="font-size: 8px; font-weight: 800; letter-spacing: 0.8px; color: #166534; text-transform: uppercase; line-height: 1.1;">
+                ★ AR RAHMAN TRUST ★
+              </div>
+              <div style="margin: 3px 0; border-top: 1px solid #166534; border-bottom: 1px solid #166534; padding: 2px 2px; width: 92%;">
+                <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; color: #15803d; text-transform: uppercase; line-height: 1.1;">
+                  VERIFIED &amp; CREDITED
+                </div>
+              </div>
+              <div style="font-size: 7.5px; font-weight: 700; letter-spacing: 0.4px; color: #166534; text-transform: uppercase; line-height: 1;">
+                PERNAMBUT
+              </div>
+              <div style="font-size: 6.5px; font-weight: 700; color: #15803d; line-height: 1; margin-top: 2px;">
+                04/16/2020
+              </div>
             </div>
           </div>
         </div>
@@ -637,8 +647,8 @@ exports.downloadReceiptPdf = async (req, res) => {
     doc.moveDown(0.6);
 
     // Pill badge: Official Receipt
-    doc.rect(170, doc.y, 255, 22).fillAndStroke('#e8f5e9', '#86efac');
-    doc.fillColor('#166534').fontSize(10).font('Helvetica-Bold').text('OFFICIAL DONATION & ZAKAT RECEIPT', 170, doc.y - 17, { width: 255, align: 'center' });
+    doc.rect(235, doc.y, 125, 22).fillAndStroke('#e8f5e9', '#86efac');
+    doc.fillColor('#166534').fontSize(10).font('Helvetica-Bold').text('RECEIPT', 235, doc.y - 17, { width: 125, align: 'center' });
     doc.moveDown(1.5);
 
     // Divider
@@ -655,8 +665,8 @@ exports.downloadReceiptPdf = async (req, res) => {
     doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Date of Contribution:', 240, metaY + 6);
     doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text(dateStr, 240, metaY + 18);
 
-    doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Financial Year:', 430, metaY + 6);
-    doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text('2026 - 2027', 430, metaY + 18);
+    doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Registered Charity No.:', 380, metaY + 6, { width: 150, align: 'right' });
+    doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text('04/16/2020', 380, metaY + 18, { width: 150, align: 'right' });
 
     doc.y = metaY + 48;
 
@@ -699,24 +709,27 @@ exports.downloadReceiptPdf = async (req, res) => {
 
     doc.y = duaY + 60;
 
-    // Verification & Signatory Row
+    // Official Trust Stamp (Circular Rubber Stamp) & Signatory Row
     const sigY = doc.y;
     doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, sigY).lineTo(545, sigY).stroke();
 
-    // Seal
-    doc.circle(95, sigY + 45, 24).lineWidth(2).strokeColor('#16a34a').stroke();
-    doc.fillColor('#16a34a').fontSize(8).font('Helvetica-Bold').text('VERIFIED', 70, sigY + 38, { width: 50, align: 'center' });
-    doc.fontSize(7).text('TRUST SEAL', 70, sigY + 48, { width: 50, align: 'center' });
-    doc.fillColor('#15803d').fontSize(9).font('Helvetica-Bold').text('OFFICIAL RECORD', 130, sigY + 35);
-    doc.fillColor('#64748b').fontSize(8).font('Helvetica').text('Regd. 04/16/2020 • Pernambut', 130, sigY + 48);
+    // Official Ar Rahman Trust Rubber Stamp
+    const stampCenterX = 110;
+    const stampCenterY = sigY + 44;
+    doc.circle(stampCenterX, stampCenterY, 32).lineWidth(2).strokeColor('#166534').stroke();
+    doc.circle(stampCenterX, stampCenterY, 28).lineWidth(1).dash(3, { space: 2 }).strokeColor('#166534').stroke();
+    doc.undash();
+    doc.fillColor('#166534').fontSize(6.5).font('Helvetica-Bold').text('AR RAHMAN TRUST', stampCenterX - 35, stampCenterY - 20, { width: 70, align: 'center' });
+    doc.strokeColor('#166534').lineWidth(0.8).moveTo(stampCenterX - 24, stampCenterY - 7).lineTo(stampCenterX + 24, stampCenterY - 7).stroke();
+    doc.fillColor('#15803d').fontSize(6.5).font('Helvetica-Bold').text('VERIFIED & CREDITED', stampCenterX - 35, stampCenterY - 4, { width: 70, align: 'center' });
+    doc.strokeColor('#166534').lineWidth(0.8).moveTo(stampCenterX - 24, stampCenterY + 7).lineTo(stampCenterX + 24, stampCenterY + 7).stroke();
+    doc.fillColor('#166534').fontSize(5.5).font('Helvetica').text('PERNAMBUT', stampCenterX - 30, stampCenterY + 10, { width: 60, align: 'center' });
+    doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
     // Signatory
     doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorized Signatory', 360, sigY + 30, { width: 170, align: 'right' });
     doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee • Pernambut', 360, sigY + 44, { width: 170, align: 'right' });
     doc.fillColor('#64748b').fontSize(8).text('Ar Rahman Trust, Vellore Dist.', 360, sigY + 56, { width: 170, align: 'right' });
-
-    // Footer note
-    doc.fillColor('#94a3b8').fontSize(8).font('Helvetica').text('Official Electronic Charity Receipt • Regd. Charity No. 04/16/2020 • Ar Rahman Trust, Pernambut • Helping Needy People', 50, 775, { width: 495, align: 'center' });
 
     doc.end();
   } catch (err) {

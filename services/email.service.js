@@ -54,7 +54,7 @@ function buildReceiptHtml(donation) {
           <tr>
             <td style="background-color: #f8fafc; padding: 14px 25px; border-bottom: 1px solid #e2e8f0; text-align: center;" align="center">
               <span style="display: inline-block; background-color: #e8f5e9; color: #166534; font-size: 12px; font-weight: 700; text-transform: uppercase; padding: 6px 16px; border-radius: 20px; letter-spacing: 0.5px;">
-                Official Donation &amp; Zakat Receipt
+                Receipt
               </span>
             </td>
           </tr>
