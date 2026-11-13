@@ -154,9 +154,9 @@ const generatePdfBuffer = (donation) => {
       doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
       // Signatory
-      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorized Signatory', 360, sigY + 30, { width: 170, align: 'right' });
-      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee • Pernambut', 360, sigY + 44, { width: 170, align: 'right' });
-      doc.fillColor('#64748b').fontSize(8).text('Ar Rahman Trust, Vellore Dist.', 360, sigY + 56, { width: 170, align: 'right' });
+      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 360, sigY + 28, { width: 170, align: 'right' });
+      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 360, sigY + 40, { width: 170, align: 'right' });
+      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 360, sigY + 54, { width: 170, align: 'right' });
 
       doc.end();
     } catch (err) {

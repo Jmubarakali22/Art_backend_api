@@ -1,5 +1,5 @@
 const { query } = require('../config/db');
-const { uploadToImageKit } = require('../config/imagekit');
+const { uploadToImageKit, deleteFromImageKit } = require('../config/imagekit');
 const fs = require('fs');
 
 exports.getAll = async (req, res) => {
@@ -100,11 +100,15 @@ exports.update = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Cause not found' });
     }
 
-    let img = existing[0].image_url;
+    const oldImageUrl = existing[0].image_url;
+    let img = oldImageUrl;
+    let imageChanged = false;
+
     if (req.file) {
       const targetFolder = req.body.folder || '/assets/causes';
       const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
       img = ikResult.url;
+      imageChanged = true;
       try {
         if (req.file.path && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
@@ -112,8 +116,9 @@ exports.update = async (req, res) => {
       } catch (err) {
         console.warn('Could not remove temp uploaded file:', err.message);
       }
-    } else if (image_url) {
+    } else if (image_url !== undefined && image_url !== oldImageUrl) {
       img = image_url;
+      imageChanged = true;
     }
 
     const sql = `
@@ -135,6 +140,18 @@ exports.update = async (req, res) => {
       id
     ]);
 
+    // If image was replaced or deleted, remove the old image from ImageKit
+    if (imageChanged && oldImageUrl && oldImageUrl !== img) {
+      const shared = await query('SELECT COUNT(*) as count FROM causes WHERE image_url = ?', [oldImageUrl]);
+      if (shared[0].count === 0) {
+        try {
+          await deleteFromImageKit(oldImageUrl);
+        } catch (ikErr) {
+          console.warn('[Causes Warning] Could not delete old image from ImageKit:', ikErr.message);
+        }
+      }
+    }
+
     res.json({ success: true, message: 'Cause updated successfully', image_url: img });
   } catch (error) {
     console.error('Error updating cause:', error);
@@ -145,9 +162,33 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    const existing = await query('SELECT image_url FROM causes WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Cause not found' });
+    }
+
+    const imageUrl = existing[0].image_url;
+
+    // Delete record from causes table
     await query('DELETE FROM causes WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Cause deleted successfully' });
+
+    // Check if the image on ImageKit is used by any other causes; if not, delete from ImageKit
+    if (imageUrl) {
+      const shared = await query('SELECT COUNT(*) as count FROM causes WHERE image_url = ?', [imageUrl]);
+      if (shared[0].count === 0) {
+        try {
+          await deleteFromImageKit(imageUrl);
+        } catch (ikErr) {
+          console.warn('[Causes Warning] Could not delete image from ImageKit:', ikErr.message);
+        }
+      } else {
+        console.log(`[Causes] Image ${imageUrl} is shared by ${shared[0].count} other cause(s); preserving on ImageKit.`);
+      }
+    }
+
+    res.json({ success: true, message: 'Cause and associated ImageKit photo deleted successfully' });
   } catch (error) {
+    console.error('Error deleting cause:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

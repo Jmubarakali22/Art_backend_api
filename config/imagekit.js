@@ -84,9 +84,71 @@ async function uploadToImageKit(file, options = {}) {
   }
 }
 
+/**
+ * Delete a file from ImageKit given its public URL
+ * @param {string} imageUrl - The full ImageKit URL
+ */
+async function deleteFromImageKit(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return false;
+  if (!imageUrl.includes('ik.imagekit.io')) {
+    return false;
+  }
+  if (!isConfigured()) {
+    console.warn('[ImageKit Warning] Delete skipped: ImageKit not configured');
+    return false;
+  }
+
+  try {
+    const parsed = new URL(imageUrl);
+    let pathName = decodeURIComponent(parsed.pathname);
+
+    // Remove endpoint ID prefix (e.g. '/baaidzoik') if present
+    const epPath = new URL(urlEndpoint).pathname.replace(/\/+$/, '');
+    if (epPath && pathName.startsWith(epPath)) {
+      pathName = pathName.slice(epPath.length);
+    }
+    if (!pathName.startsWith('/')) pathName = '/' + pathName;
+
+    const lastSlash = pathName.lastIndexOf('/');
+    const fileName = lastSlash !== -1 ? pathName.slice(lastSlash + 1) : pathName;
+    const folderPath = lastSlash !== -1 ? pathName.slice(0, lastSlash) : '/';
+
+    console.log(`[ImageKit] Finding file to delete: "${fileName}" in folder: "${folderPath}"`);
+
+    // 1. Search with folder and file name
+    let files = await imagekitInstance.listFiles({
+      searchQuery: `name = "${fileName}"`,
+      path: folderPath
+    });
+
+    // 2. Fallback: search by name across folders if path didn't return matches
+    if (!files || files.length === 0) {
+      files = await imagekitInstance.listFiles({
+        searchQuery: `name = "${fileName}"`
+      });
+    }
+
+    if (files && files.length > 0) {
+      const matched = files.find(f => f.filePath === pathName || f.name === fileName) || files[0];
+      if (matched && matched.fileId) {
+        await imagekitInstance.deleteFile(matched.fileId);
+        console.log(`[ImageKit] Successfully deleted file: ${matched.filePath} (${matched.fileId})`);
+        return true;
+      }
+    }
+
+    console.warn(`[ImageKit] File "${fileName}" not found on ImageKit; nothing deleted.`);
+    return false;
+  } catch (error) {
+    console.error('[ImageKit Error] Failed to delete file:', error.message);
+    return false;
+  }
+}
+
 module.exports = {
   isConfigured,
   uploadToImageKit,
+  deleteFromImageKit,
   urlEndpoint,
   defaultFolder
 };

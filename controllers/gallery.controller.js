@@ -1,5 +1,5 @@
 const { query } = require('../config/db');
-const { uploadToImageKit } = require('../config/imagekit');
+const { uploadToImageKit, deleteFromImageKit } = require('../config/imagekit');
 
 exports.getAll = async (req, res) => {
   try {
@@ -114,8 +114,26 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    const existing = await query('SELECT image_url FROM gallery WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Gallery item not found' });
+    }
+    const imageUrl = existing[0].image_url;
+
     await query('DELETE FROM gallery WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Gallery item deleted successfully' });
+
+    if (imageUrl) {
+      const shared = await query('SELECT COUNT(*) as count FROM gallery WHERE image_url = ?', [imageUrl]);
+      if (shared[0].count === 0) {
+        try {
+          await deleteFromImageKit(imageUrl);
+        } catch (ikErr) {
+          console.warn('[Gallery Warning] Could not delete image from ImageKit:', ikErr.message);
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Gallery item and photo deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
