@@ -41,13 +41,37 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Resolve user's effective page permissions
+    let effectivePerms = ['*'];
+    if (admin.role !== 'superadmin' && admin.role !== 'Super Admin') {
+      if (admin.permissions) {
+        try {
+          effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
+        } catch (e) {
+          effectivePerms = ['dashboard'];
+        }
+      } else {
+        const roleRecords = await query('SELECT permissions FROM roles WHERE LOWER(name) = LOWER(?)', [admin.role]);
+        if (roleRecords.length > 0 && roleRecords[0].permissions) {
+          try {
+            effectivePerms = typeof roleRecords[0].permissions === 'string' ? JSON.parse(roleRecords[0].permissions) : roleRecords[0].permissions;
+          } catch (e) {
+            effectivePerms = ['dashboard'];
+          }
+        } else {
+          effectivePerms = ['dashboard'];
+        }
+      }
+    }
+
     const token = jwt.sign(
       {
         id: admin.id,
         username: admin.username,
         email: admin.email,
         role: admin.role,
-        name: admin.name
+        name: admin.name,
+        permissions: effectivePerms
       },
       process.env.JWT_SECRET || 'ar_rahman_trust_jwt_super_secret_key_2026',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
@@ -73,7 +97,8 @@ exports.login = async (req, res) => {
         email: admin.email,
         name: admin.name,
         role: admin.role,
-        avatar: admin.avatar
+        avatar: admin.avatar,
+        permissions: effectivePerms
       }
     });
   } catch (error) {
@@ -88,7 +113,7 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const admins = await query(
-      'SELECT id, username, email, name, role, avatar, created_at FROM admins WHERE id = ?',
+      'SELECT id, username, email, name, role, permissions, avatar, created_at FROM admins WHERE id = ?',
       [req.user.id]
     );
 
@@ -96,7 +121,31 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Admin not found.' });
     }
 
-    res.json({ success: true, admin: admins[0] });
+    const admin = admins[0];
+    let effectivePerms = ['*'];
+    if (admin.role !== 'superadmin' && admin.role !== 'Super Admin') {
+      if (admin.permissions) {
+        try {
+          effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
+        } catch (e) {
+          effectivePerms = ['dashboard'];
+        }
+      } else {
+        const roleRecords = await query('SELECT permissions FROM roles WHERE LOWER(name) = LOWER(?)', [admin.role]);
+        if (roleRecords.length > 0 && roleRecords[0].permissions) {
+          try {
+            effectivePerms = typeof roleRecords[0].permissions === 'string' ? JSON.parse(roleRecords[0].permissions) : roleRecords[0].permissions;
+          } catch (e) {
+            effectivePerms = ['dashboard'];
+          }
+        } else {
+          effectivePerms = ['dashboard'];
+        }
+      }
+    }
+    admin.permissions = effectivePerms;
+
+    res.json({ success: true, admin });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

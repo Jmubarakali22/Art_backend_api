@@ -29,7 +29,9 @@ const requireRole = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
-    if (!roles.includes(req.user.role)) {
+    const userRole = (req.user.role || '').toLowerCase().trim();
+    const allowed = roles.map(r => (r || '').toLowerCase().trim());
+    if (!allowed.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: `Forbidden. Requires one of roles: ${roles.join(', ')}`

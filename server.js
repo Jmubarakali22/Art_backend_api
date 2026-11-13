@@ -62,6 +62,7 @@ app.use('/api/volunteers', require('./routes/volunteers.routes'));
 app.use('/api/contacts', require('./routes/contacts.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));
 app.use('/api/whatsapp', require('./routes/whatsapp.routes'));
+app.use('/api/roles', require('./routes/roles.routes'));
 
 // Fallback 404 handler for API routes
 app.use('/api/*', (req, res) => {
