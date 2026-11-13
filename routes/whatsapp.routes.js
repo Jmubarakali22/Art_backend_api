@@ -153,10 +153,30 @@ const generatePdfBuffer = (donation) => {
       doc.fillColor('#166534').fontSize(5.5).font('Helvetica').text('PERNAMBUT', stampCenterX - 30, stampCenterY + 10, { width: 60, align: 'center' });
       doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
+      // Shield logo above "Digitally Signed"
+      const shieldX = 512;
+      const shieldY = sigY + 12;
+      doc.save();
+      doc.lineWidth(1.2).strokeColor('#0F3D63').fillColor('#f0f7ff');
+      doc.moveTo(shieldX, shieldY)
+         .lineTo(shieldX - 8, shieldY + 3.5)
+         .lineTo(shieldX - 8, shieldY + 10)
+         .quadraticCurveTo(shieldX - 8, shieldY + 16, shieldX, shieldY + 19)
+         .quadraticCurveTo(shieldX + 8, shieldY + 16, shieldX + 8, shieldY + 10)
+         .lineTo(shieldX + 8, shieldY + 3.5)
+         .closePath()
+         .fillAndStroke();
+      doc.lineWidth(1.3).strokeColor('#0F3D63')
+         .moveTo(shieldX - 3.5, shieldY + 9.5)
+         .lineTo(shieldX - 0.5, shieldY + 12.5)
+         .lineTo(shieldX + 3.5, shieldY + 6.5)
+         .stroke();
+      doc.restore();
+
       // Signatory
-      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 360, sigY + 28, { width: 170, align: 'right' });
-      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 360, sigY + 40, { width: 170, align: 'right' });
-      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 360, sigY + 54, { width: 170, align: 'right' });
+      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 360, sigY + 34, { width: 170, align: 'right' });
+      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 360, sigY + 46, { width: 170, align: 'right' });
+      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 360, sigY + 60, { width: 170, align: 'right' });
 
       doc.end();
     } catch (err) {
