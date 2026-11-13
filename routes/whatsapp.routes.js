@@ -154,7 +154,7 @@ const generatePdfBuffer = (donation) => {
       doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
       // Shield logo above "Digitally Signed"
-      const shieldX = 512;
+      const shieldX = 450;
       const shieldY = sigY + 12;
       doc.save();
       doc.lineWidth(1.2).strokeColor('#0F3D63').fillColor('#f0f7ff');
@@ -173,10 +173,10 @@ const generatePdfBuffer = (donation) => {
          .stroke();
       doc.restore();
 
-      // Signatory
-      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 360, sigY + 34, { width: 170, align: 'right' });
-      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 360, sigY + 46, { width: 170, align: 'right' });
-      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 360, sigY + 60, { width: 170, align: 'right' });
+      // Signatory (Center-aligned with shield)
+      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 365, sigY + 34, { width: 170, align: 'center' });
+      doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 365, sigY + 46, { width: 170, align: 'center' });
+      doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 365, sigY + 60, { width: 170, align: 'center' });
 
       doc.end();
     } catch (err) {

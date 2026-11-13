@@ -549,16 +549,18 @@ exports.getPublicReceipt = async (req, res) => {
             </div>
           </div>
         </div>
-        <div class="col-12 col-sm-6 text-center text-sm-end">
-          <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width: 34px; height: 34px; background: #f0f7ff; border: 1.5px solid #0F3D63;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L4 5.5V11.5C4 16.5 7.4 21.1 12 22.3C16.6 21.1 20 16.5 20 11.5V5.5L12 2Z" fill="#0F3D63" fill-opacity="0.18" stroke="#0F3D63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M9 12.2L11 14.2L15.5 9.7" stroke="#0F3D63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+        <div class="col-12 col-sm-6 d-flex justify-content-center justify-content-sm-end">
+          <div class="text-center">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width: 34px; height: 34px; background: #f0f7ff; border: 1.5px solid #0F3D63;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 5.5V11.5C4 16.5 7.4 21.1 12 22.3C16.6 21.1 20 16.5 20 11.5V5.5L12 2Z" fill="#0F3D63" fill-opacity="0.18" stroke="#0F3D63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12.2L11 14.2L15.5 9.7" stroke="#0F3D63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="small text-muted fw-semibold" style="font-size: 10.5px; letter-spacing: 0.5px;">Digitally Signed</div>
+            <div class="fw-bold" style="color: #0F3D63; font-size: 13px;">Authorised Signatory</div>
+            <div class="text-muted small">Managing Trustee</div>
           </div>
-          <div class="small text-muted fw-semibold" style="font-size: 10.5px; letter-spacing: 0.5px;">Digitally Signed</div>
-          <div class="fw-bold" style="color: #0F3D63; font-size: 13px;">Authorised Signatory</div>
-          <div class="text-muted small">Managing Trustee</div>
         </div>
       </div>
     </div>
@@ -733,7 +735,7 @@ exports.downloadReceiptPdf = async (req, res) => {
     doc.fillColor('#15803d').fontSize(5).font('Helvetica-Bold').text('04/16/2020', stampCenterX - 30, stampCenterY + 18, { width: 60, align: 'center' });
 
     // Shield logo above "Digitally Signed"
-    const shieldX = 512;
+    const shieldX = 450;
     const shieldY = sigY + 12;
     doc.save();
     doc.lineWidth(1.2).strokeColor('#0F3D63').fillColor('#f0f7ff');
@@ -752,10 +754,10 @@ exports.downloadReceiptPdf = async (req, res) => {
        .stroke();
     doc.restore();
 
-    // Signatory
-    doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 360, sigY + 34, { width: 170, align: 'right' });
-    doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 360, sigY + 46, { width: 170, align: 'right' });
-    doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 360, sigY + 60, { width: 170, align: 'right' });
+    // Signatory (Center-aligned with shield)
+    doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text('Digitally Signed', 365, sigY + 34, { width: 170, align: 'center' });
+    doc.fillColor('#0F3D63').fontSize(11).font('Helvetica-Bold').text('Authorised Signatory', 365, sigY + 46, { width: 170, align: 'center' });
+    doc.fillColor('#475569').fontSize(9).font('Helvetica').text('Managing Trustee', 365, sigY + 60, { width: 170, align: 'center' });
 
     doc.end();
   } catch (err) {
