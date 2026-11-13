@@ -43,7 +43,8 @@ exports.login = async (req, res) => {
 
     // Resolve user's effective page permissions
     let effectivePerms = ['*'];
-    if (admin.role !== 'superadmin' && admin.role !== 'Super Admin') {
+    const rLower = (admin.role || '').toLowerCase().trim();
+    if (rLower !== 'superadmin' && rLower !== 'super admin' && rLower !== 'super_admin') {
       if (admin.permissions) {
         try {
           effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
@@ -58,6 +59,9 @@ exports.login = async (req, res) => {
           } catch (e) {
             effectivePerms = ['dashboard'];
           }
+        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee' || rLower === 'administrator') {
+          // Standard admin / managing trustee roles have full administrative module access
+          effectivePerms = ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'];
         } else {
           effectivePerms = ['dashboard'];
         }
@@ -123,7 +127,8 @@ exports.getProfile = async (req, res) => {
 
     const admin = admins[0];
     let effectivePerms = ['*'];
-    if (admin.role !== 'superadmin' && admin.role !== 'Super Admin') {
+    const rLower = (admin.role || '').toLowerCase().trim();
+    if (rLower !== 'superadmin' && rLower !== 'super admin' && rLower !== 'super_admin') {
       if (admin.permissions) {
         try {
           effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
@@ -138,6 +143,9 @@ exports.getProfile = async (req, res) => {
           } catch (e) {
             effectivePerms = ['dashboard'];
           }
+        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee' || rLower === 'administrator') {
+          // Standard admin / managing trustee roles have full administrative module access
+          effectivePerms = ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'];
         } else {
           effectivePerms = ['dashboard'];
         }

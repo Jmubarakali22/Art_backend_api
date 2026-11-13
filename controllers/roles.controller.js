@@ -202,7 +202,11 @@ exports.getUsers = async (req, res) => {
     const roles = await query('SELECT * FROM roles');
 
     // Build role permissions lookup map
-    const rolePermsMap = {};
+    const rolePermsMap = {
+      'admin': ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'],
+      'trustee': ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'],
+      'superadmin': ['*']
+    };
     for (const r of roles) {
       let p = [];
       try {
@@ -226,8 +230,10 @@ exports.getUsers = async (req, res) => {
       }
 
       // If user is superadmin, they get all permissions
-      const isSuper = (a.role === 'superadmin' || a.role === 'Super Admin');
-      const effectivePerms = isSuper ? ['*'] : (userCustomPerms || rolePermsMap[a.role] || ['dashboard']);
+      const roleLower = (a.role || '').toLowerCase().trim();
+      const isSuper = (roleLower === 'superadmin' || roleLower === 'super admin' || roleLower === 'super_admin');
+      const mappedRolePerms = rolePermsMap[a.role] || rolePermsMap[roleLower] || rolePermsMap[roleLower.replace(/\s+/g, '')];
+      const effectivePerms = isSuper ? ['*'] : (userCustomPerms || mappedRolePerms || ['dashboard']);
 
       return {
         id: a.id,
