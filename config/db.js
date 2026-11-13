@@ -1162,11 +1162,16 @@ async function getPool() {
         }
       }
 
-      // Ensure admins table has permissions column
+      // Ensure admins table has permissions column and role is VARCHAR(100)
       try {
         await pool.query('ALTER TABLE admins ADD COLUMN permissions JSON NULL');
       } catch (e) {
         // column already exists, ignore
+      }
+      try {
+        await pool.query("ALTER TABLE admins MODIFY COLUMN role VARCHAR(100) DEFAULT 'admin'");
+      } catch (e) {
+        // ignore
       }
     } catch (tblErr) {
       console.warn('[Database Notice] Role table self-heal check:', tblErr.message);
