@@ -18,15 +18,40 @@ const AVAILABLE_PAGES = [
  */
 exports.getAllRoles = async (req, res) => {
   try {
-    const roles = await query('SELECT * FROM roles ORDER BY is_system DESC, id ASC');
+    let roles = await query('SELECT * FROM roles ORDER BY is_system DESC, id ASC');
+
+    if (!Array.isArray(roles) || roles.length === 0) {
+      // Seed default system roles if table is empty
+      const defaultRoles = [
+        { name: 'Super Admin', description: 'Full unconstrained administrative access across all modules and accounts', permissions: ['*'], is_system: 1 },
+        { name: 'Managing Trustee', description: 'Full management access to operations, finances, causes, and public media', permissions: ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'], is_system: 0 },
+        { name: 'Finance / Accountant', description: 'Access to financial donation records, receipt vouchers, and revenue stats', permissions: ['dashboard', 'donations'], is_system: 0 },
+        { name: 'Welfare Coordinator', description: 'Management of charity causes, ration kits, relief programs, and inquiries', permissions: ['dashboard', 'causes', 'volunteers', 'inquiries'], is_system: 0 },
+        { name: 'Media & Communications', description: 'Responsible for public photo gallery, relief events, and inquiry responses', permissions: ['gallery', 'inquiries'], is_system: 0 }
+      ];
+      for (const d of defaultRoles) {
+        try {
+          await query(
+            'INSERT IGNORE INTO roles (name, description, permissions, is_system) VALUES (?, ?, ?, ?)',
+            [d.name, d.description, JSON.stringify(d.permissions), d.is_system]
+          );
+        } catch (e) {}
+      }
+      roles = await query('SELECT * FROM roles ORDER BY is_system DESC, id ASC');
+    }
+
     const adminCounts = await query('SELECT role, COUNT(*) as count FROM admins GROUP BY role');
 
     const countMap = {};
-    for (const c of adminCounts) {
-      countMap[c.role] = c.count;
+    if (Array.isArray(adminCounts)) {
+      for (const c of adminCounts) {
+        if (c && c.role) {
+          countMap[c.role] = c.count || 0;
+        }
+      }
     }
 
-    const formatted = roles.map(r => {
+    const formatted = (Array.isArray(roles) ? roles : []).map(r => {
       let perms = [];
       try {
         perms = typeof r.permissions === 'string' ? JSON.parse(r.permissions) : (r.permissions || []);
@@ -37,9 +62,9 @@ exports.getAllRoles = async (req, res) => {
         id: r.id,
         name: r.name,
         description: r.description,
-        permissions: perms,
+        permissions: Array.isArray(perms) ? perms : [],
         is_system: !!r.is_system,
-        user_count: countMap[r.name] || countMap[r.name.toLowerCase().replace(/\s+/g, '')] || 0,
+        user_count: countMap[r.name] || countMap[(r.name || '').toLowerCase().replace(/\s+/g, '')] || 0,
         created_at: r.created_at,
         updated_at: r.updated_at
       };

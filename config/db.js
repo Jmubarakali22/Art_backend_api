@@ -6,17 +6,17 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  host: process.env.DB_HOST || 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+  user: process.env.DB_USER || '4ZSRuoqiprq7jy1.root',
+  password: process.env.DB_PASSWORD || 'XGIzP1kh3eclpp4y',
   database: process.env.DB_NAME || 'ar_rahman_trust_db',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
+  port: parseInt(process.env.DB_PORT || '4000', 10),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+  ssl: process.env.DB_SSL === 'false' ? undefined : { rejectUnauthorized: false }
 };
 
 let pool = null;
@@ -1058,6 +1058,53 @@ const memoryStore = {
     trust_address: '112, Small Mosque Street, Pernambut, Vellore District, Tamil Nadu, India',
     banner_announcement: 'Welcome to Ar Rahman Trust. Serving Pernambut and surrounding rural villages.'
   },
+  roles: [
+    {
+      id: 1,
+      name: 'Super Admin',
+      description: 'Full unconstrained administrative access across all modules and accounts',
+      permissions: ['*'],
+      is_system: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      name: 'Managing Trustee',
+      description: 'Full management access to operations, finances, causes, and public media',
+      permissions: ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'],
+      is_system: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      name: 'Finance / Accountant',
+      description: 'Access to financial donation records, receipt vouchers, and revenue stats',
+      permissions: ['dashboard', 'donations'],
+      is_system: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 4,
+      name: 'Welfare Coordinator',
+      description: 'Management of charity causes, ration kits, relief programs, and inquiries',
+      permissions: ['dashboard', 'causes', 'volunteers', 'inquiries'],
+      is_system: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 5,
+      name: 'Media & Communications',
+      description: 'Responsible for public photo gallery, relief events, and inquiry responses',
+      permissions: ['gallery', 'inquiries'],
+      is_system: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
   activity_logs: [
     {
       id: 1,
@@ -1086,6 +1133,45 @@ async function getPool() {
     await pool.query('SELECT 1');
     console.log(`[Database] ✅ MySQL connected successfully to "${dbConfig.database}" at ${dbConfig.host}:${dbConfig.port}`);
     useMemoryFallback = false;
+
+    // Self-healing: Ensure roles table exists and has default system roles
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS roles (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL UNIQUE,
+          description TEXT,
+          permissions JSON,
+          is_system TINYINT(1) DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+
+      const [existingRoles] = await pool.query('SELECT COUNT(*) as count FROM roles');
+      if (existingRoles[0].count === 0) {
+        const defaultRoles = [
+          ['Super Admin', 'Full unconstrained administrative access across all modules and accounts', JSON.stringify(['*']), 1],
+          ['Managing Trustee', 'Full management access to operations, finances, causes, and public media', JSON.stringify(['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings']), 0],
+          ['Finance / Accountant', 'Access to financial donation records, receipt vouchers, and revenue stats', JSON.stringify(['dashboard', 'donations']), 0],
+          ['Welfare Coordinator', 'Management of charity causes, ration kits, relief programs, and inquiries', JSON.stringify(['dashboard', 'causes', 'volunteers', 'inquiries']), 0],
+          ['Media & Communications', 'Responsible for public photo gallery, relief events, and inquiry responses', JSON.stringify(['gallery', 'inquiries']), 0]
+        ];
+        for (const r of defaultRoles) {
+          await pool.query('INSERT IGNORE INTO roles (name, description, permissions, is_system) VALUES (?, ?, ?, ?)', r);
+        }
+      }
+
+      // Ensure admins table has permissions column
+      try {
+        await pool.query('ALTER TABLE admins ADD COLUMN permissions JSON NULL');
+      } catch (e) {
+        // column already exists, ignore
+      }
+    } catch (tblErr) {
+      console.warn('[Database Notice] Role table self-heal check:', tblErr.message);
+    }
+
     return pool;
   } catch (err) {
     useMemoryFallback = true;
@@ -1103,7 +1189,8 @@ async function query(sql, params = []) {
       return results;
     }
   } catch (err) {
-    useMemoryFallback = true;
+    console.error('[Database Query Error]:', err.message);
+    if (!pool) useMemoryFallback = true;
   }
 
   // Fallback simulator for standard operations when MySQL is offline
@@ -1185,6 +1272,13 @@ function handleMemoryQuery(sql, params) {
 
   // 1. Admins
   if (s.includes('from admins')) {
+    if (s.includes('group by role')) {
+      const counts = {};
+      (memoryStore.admins || []).forEach(a => {
+        counts[a.role] = (counts[a.role] || 0) + 1;
+      });
+      return Object.entries(counts).map(([role, count]) => ({ role, count }));
+    }
     if (s.includes('where username = ? or email = ?')) {
       const val = params[0];
       return memoryStore.admins.filter(a => a.username === val || a.email === val);
@@ -1208,6 +1302,22 @@ function handleMemoryQuery(sql, params) {
     };
     memoryStore.admins.push(newAdmin);
     return { insertId: newId, affectedRows: 1 };
+  }
+
+  if (s.startsWith('update admins')) {
+    const id = parseInt(params[params.length - 1], 10);
+    const admin = memoryStore.admins.find(a => a.id === id);
+    if (admin) {
+      if (s.includes('role = ?, permissions = ?')) {
+        admin.role = params[0];
+        try {
+          admin.permissions = typeof params[1] === 'string' ? JSON.parse(params[1]) : params[1];
+        } catch (e) {
+          admin.permissions = params[1];
+        }
+      }
+    }
+    return { affectedRows: 1 };
   }
 
   if (s.startsWith('delete from admins')) {
@@ -1456,6 +1566,63 @@ function handleMemoryQuery(sql, params) {
       created_at: new Date().toISOString()
     });
     return { insertId: newId, affectedRows: 1 };
+  }
+
+  // 9. Roles
+  if (s.includes('from roles')) {
+    if (s.includes('where id = ?')) {
+      const id = parseInt(params[0], 10);
+      return (memoryStore.roles || []).filter(r => r.id === id);
+    }
+    if (s.includes('where lower(name) = lower(?)')) {
+      const name = (params[0] || '').toLowerCase().trim();
+      return (memoryStore.roles || []).filter(r => (r.name || '').toLowerCase().trim() === name);
+    }
+    return [...(memoryStore.roles || [])];
+  }
+
+  if (s.startsWith('insert into roles')) {
+    if (!memoryStore.roles) memoryStore.roles = [];
+    const newId = (memoryStore.roles.length > 0 ? Math.max(...memoryStore.roles.map(r => r.id)) : 0) + 1;
+    let perms = params[2];
+    try {
+      if (typeof perms === 'string') perms = JSON.parse(perms);
+    } catch (e) {}
+    const newRole = {
+      id: newId,
+      name: params[0],
+      description: params[1] || '',
+      permissions: Array.isArray(perms) ? perms : [],
+      is_system: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    memoryStore.roles.push(newRole);
+    return { insertId: newId, affectedRows: 1 };
+  }
+
+  if (s.startsWith('update roles')) {
+    const id = parseInt(params[params.length - 1], 10);
+    const r = (memoryStore.roles || []).find(x => x.id === id);
+    if (r) {
+      r.name = params[0];
+      r.description = params[1] !== undefined ? params[1] : r.description;
+      let perms = params[2];
+      try {
+        if (typeof perms === 'string') perms = JSON.parse(perms);
+      } catch (e) {}
+      r.permissions = Array.isArray(perms) ? perms : r.permissions;
+      r.updated_at = new Date().toISOString();
+    }
+    return { affectedRows: 1 };
+  }
+
+  if (s.startsWith('delete from roles')) {
+    const id = parseInt(params[0], 10);
+    if (memoryStore.roles) {
+      memoryStore.roles = memoryStore.roles.filter(r => r.id !== id);
+    }
+    return { affectedRows: 1 };
   }
 
   return [];
