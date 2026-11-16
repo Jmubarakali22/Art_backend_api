@@ -73,10 +73,7 @@ exports.getAll = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { title, caption, category = 'General', image_url, order_num = 0, is_visible = 1 } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ success: false, message: 'Title is required.' });
-    }
+    const finalTitle = (title && title.trim()) || category || 'Gallery Photo';
 
     let img = '';
     if (req.file) {
@@ -95,7 +92,7 @@ exports.create = async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `;
     const result = await query(sql, [
-      title,
+      finalTitle,
       caption || null,
       category,
       img,
@@ -118,21 +115,30 @@ exports.update = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const { title, caption, category, image_url, order_num, is_visible } = req.body;
 
-    const existing = await query('SELECT image_url FROM gallery WHERE id = ?', [id]);
+    const existing = await query('SELECT * FROM gallery WHERE id = ?', [id]);
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'Gallery item not found' });
     }
 
-    let img = existing[0].image_url;
+    const currentItem = existing[0];
+    const finalCategory = category || currentItem.category || 'General';
+    const finalTitle = (title && title.trim()) || currentItem.title || finalCategory;
+    const finalCaption = caption !== undefined ? caption : currentItem.caption;
+    const finalOrder = order_num !== undefined ? parseInt(order_num || 0, 10) : currentItem.order_num;
+
+    let img = currentItem.image_url;
     if (req.file) {
-      const targetFolder = resolveGalleryFolder(category, req.body.folder);
+      const targetFolder = resolveGalleryFolder(finalCategory, req.body.folder);
       const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
       img = ikResult.url;
     } else if (image_url) {
       img = image_url;
     }
 
-    const isVisibleVal = (is_visible === 'true' || is_visible === true || is_visible === 1 || is_visible === '1') ? 1 : 0;
+    const isVisibleVal = (is_visible !== undefined) 
+      ? ((is_visible === 'true' || is_visible === true || is_visible === 1 || is_visible === '1') ? 1 : 0)
+      : currentItem.is_visible;
+
     const sql = `
       UPDATE gallery 
       SET title = ?, caption = ?, category = ?, image_url = ?, order_num = ?, is_visible = ?
@@ -140,11 +146,11 @@ exports.update = async (req, res) => {
     `;
 
     await query(sql, [
-      title,
-      caption || null,
-      category,
+      finalTitle,
+      finalCaption || null,
+      finalCategory,
       img,
-      parseInt(order_num || 0, 10),
+      finalOrder,
       isVisibleVal,
       id
     ]);
