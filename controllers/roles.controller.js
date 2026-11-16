@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const AVAILABLE_PAGES = [
   { key: 'dashboard', name: 'Dashboard', description: 'Overview statistics, metric cards, recent donations' },
   { key: 'donations', name: 'Donations & Receipts', description: 'Donation tracking, receipt voucher printing & WhatsApp dispatch' },
+  { key: 'expenses', name: 'Expenses & Relief Tracking', description: 'Track tailoring, ration kits, relief expenditures, and vouchers' },
   { key: 'causes', name: 'Causes & Programs', description: 'Charity causes, goal amounts, and relief projects' },
   { key: 'gallery', name: 'Photo Gallery', description: 'Relief event photos, activities, and community outreach images' },
   { key: 'volunteers', name: 'Volunteers', description: 'Volunteer registrations, applications, and status' },
