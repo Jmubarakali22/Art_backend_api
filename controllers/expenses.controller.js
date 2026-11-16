@@ -77,9 +77,11 @@ exports.getAll = async (req, res) => {
     if (sort === 'amount_high') orderSql = 'ORDER BY amount DESC';
     if (sort === 'amount_low') orderSql = 'ORDER BY amount ASC';
 
-    // Fetch records
-    const fetchSql = `SELECT * FROM expenses ${whereSql} ${orderSql} LIMIT ? OFFSET ?`;
-    const expenses = await query(fetchSql, [...params, limitNum, offset]);
+    // Fetch records with safe sanitized integer LIMIT & OFFSET (compatible with TiDB and MySQL binary protocol)
+    const safeLimit = Math.max(1, parseInt(limitNum, 10) || 10);
+    const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+    const fetchSql = `SELECT * FROM expenses ${whereSql} ${orderSql} LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+    const expenses = await query(fetchSql, params);
 
     // KPI & Summary Breakdown across all expenses
     const summaryRows = await query(`
