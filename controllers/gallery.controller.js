@@ -37,7 +37,7 @@ function resolveGalleryFolder(category, requestedFolder) {
 
 exports.getAll = async (req, res) => {
   try {
-    const { category, is_visible } = req.query;
+    const { category, is_visible, sort } = req.query;
     let whereClauses = [];
     let params = [];
 
@@ -51,7 +51,17 @@ exports.getAll = async (req, res) => {
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    const sql = `SELECT * FROM gallery ${whereSql} ORDER BY order_num ASC, id DESC`;
+
+    let orderBy = 'ORDER BY order_num ASC, id DESC';
+    if (sort === 'newest') {
+      orderBy = 'ORDER BY id DESC';
+    } else if (sort === 'oldest') {
+      orderBy = 'ORDER BY id ASC';
+    } else if (sort === 'order') {
+      orderBy = 'ORDER BY order_num ASC, id DESC';
+    }
+
+    const sql = `SELECT * FROM gallery ${whereSql} ${orderBy}`;
     const items = await query(sql, params);
 
     res.json({ success: true, data: items });
