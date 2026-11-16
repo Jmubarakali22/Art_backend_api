@@ -56,6 +56,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
 app.use('/api/donations', require('./routes/donations.routes'));
+app.use('/api/expenses', require('./routes/expenses.routes'));
 app.use('/api/causes', require('./routes/causes.routes'));
 app.use('/api/gallery', require('./routes/gallery.routes'));
 app.use('/api/volunteers', require('./routes/volunteers.routes'));
