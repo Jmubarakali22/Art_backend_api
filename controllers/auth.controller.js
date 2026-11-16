@@ -301,3 +301,100 @@ exports.deleteAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+exports.updateAdmin = async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id, 10);
+    const { username, email, password, name, role, permissions } = req.body;
+
+    const existing = await query('SELECT * FROM admins WHERE id = ?', [targetId]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Admin account not found.' });
+    }
+    const admin = existing[0];
+
+    // Check if target is current user attempting to revoke own superadmin status
+    const isTargetSuper = (admin.role || '').toLowerCase().trim() === 'superadmin' || (admin.role || '').toLowerCase().trim() === 'super admin';
+    if (admin.id === req.user.id && isTargetSuper && role && role.toLowerCase().trim() !== 'superadmin' && role.toLowerCase().trim() !== 'super admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot revoke your own Super Admin access.'
+      });
+    }
+
+    // Uniqueness checks for username and email if changed
+    if (username && username.trim() !== admin.username) {
+      const dupUser = await query('SELECT id FROM admins WHERE username = ? AND id != ?', [username.trim(), targetId]);
+      if (dupUser.length > 0) {
+        return res.status(400).json({ success: false, message: 'Username is already taken by another user.' });
+      }
+    }
+
+    if (email && email.trim().toLowerCase() !== (admin.email || '').toLowerCase()) {
+      const dupEmail = await query('SELECT id FROM admins WHERE LOWER(email) = LOWER(?) AND id != ?', [email.trim(), targetId]);
+      if (dupEmail.length > 0) {
+        return res.status(400).json({ success: false, message: 'Email address is already in use by another user.' });
+      }
+    }
+
+    const updatedName = name !== undefined ? name.trim() : admin.name;
+    const updatedUsername = username !== undefined ? username.trim() : admin.username;
+    const updatedEmail = email !== undefined ? email.trim() : admin.email;
+    const updatedRole = (role !== undefined && role.trim()) ? role.trim() : admin.role;
+
+    // Handle password update if supplied
+    let updatedHashedPassword = admin.password;
+    if (password && password.trim().length > 0) {
+      if (password.trim().length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+      }
+      updatedHashedPassword = await bcrypt.hash(password.trim(), 10);
+    }
+
+    // Handle permissions: explicit custom array, or inherit from updated role
+    let finalPerms = admin.permissions;
+    if (permissions !== undefined && permissions !== null) {
+      finalPerms = JSON.stringify(Array.isArray(permissions) ? permissions : []);
+    } else if (role !== undefined && role !== admin.role) {
+      const roleRecords = await query('SELECT permissions FROM roles WHERE LOWER(name) = LOWER(?)', [updatedRole]);
+      if (roleRecords.length > 0 && roleRecords[0].permissions) {
+        finalPerms = typeof roleRecords[0].permissions === 'string'
+          ? roleRecords[0].permissions
+          : JSON.stringify(roleRecords[0].permissions);
+      } else {
+        const rLower = updatedRole.toLowerCase().trim();
+        if (rLower === 'superadmin' || rLower === 'super admin' || rLower === 'super_admin') {
+          finalPerms = JSON.stringify(['*']);
+        }
+      }
+    }
+
+    await query(
+      'UPDATE admins SET name = ?, username = ?, email = ?, password = ?, role = ?, permissions = ? WHERE id = ?',
+      [updatedName, updatedUsername, updatedEmail, updatedHashedPassword, updatedRole, finalPerms, targetId]
+    );
+
+    // Activity log
+    try {
+      await query(
+        'INSERT INTO activity_logs (admin_id, admin_name, action, details, ip_address) VALUES (?, ?, ?, ?, ?)',
+        [req.user?.id || 1, req.user?.name || 'Admin', 'UPDATE_ADMIN', 'Updated admin account ' + updatedName + ' (ID: ' + targetId + ')', req.ip || '127.0.0.1']
+      );
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: 'Admin account for ' + updatedName + ' updated successfully.',
+      admin: {
+        id: targetId,
+        name: updatedName,
+        username: updatedUsername,
+        email: updatedEmail,
+        role: updatedRole
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -14,6 +14,7 @@ router.put('/profile', authMiddleware, upload.single('avatar'), authController.u
 // Protected (Superadmin only)
 router.get('/all', authMiddleware, requireRole('superadmin'), authController.getAllAdmins);
 router.post('/create', authMiddleware, requireRole('superadmin'), authController.createAdmin);
+router.put('/:id', authMiddleware, requireRole('superadmin'), authController.updateAdmin);
 router.delete('/:id', authMiddleware, requireRole('superadmin'), authController.deleteAdmin);
 
 module.exports = router;
