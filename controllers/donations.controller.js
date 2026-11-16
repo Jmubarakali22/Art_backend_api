@@ -39,8 +39,8 @@ exports.getAll = async (req, res) => {
     }
 
     if (type) {
-      if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(type)) {
-        whereClauses.push("donation_type IN ('monthly_contribution', 'monthly_donation', 'monthly')");
+      if (['monthly_contribution', 'monthly_donation', 'monthly', 'fitra'].includes(type)) {
+        whereClauses.push("donation_type IN ('monthly_contribution', 'monthly_donation', 'monthly', 'fitra')");
       } else if (['zakat', 'zakath'].includes(type)) {
         whereClauses.push("donation_type IN ('zakat', 'zakath')");
       } else {
@@ -165,7 +165,7 @@ exports.create = async (req, res) => {
     const receipt_number = `${prefix}${String(nextSeq).padStart(4, '0')}`;
 
     let finalType = donation_type || 'sadaqah';
-    if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(finalType)) {
+    if (['monthly_contribution', 'monthly_donation', 'monthly', 'fitra'].includes(finalType)) {
       finalType = 'monthly_contribution';
     } else if (['zakat', 'zakath'].includes(finalType)) {
       finalType = 'zakat';
@@ -219,7 +219,7 @@ exports.update = async (req, res) => {
     const { donor_name, donor_email, donor_phone, amount, donation_type, payment_method, transaction_id, status, notes } = req.body;
 
     let finalType = donation_type || 'sadaqah';
-    if (['monthly_contribution', 'monthly_donation', 'monthly'].includes(finalType)) {
+    if (['monthly_contribution', 'monthly_donation', 'monthly', 'fitra'].includes(finalType)) {
       finalType = 'monthly_contribution';
     } else if (['zakat', 'zakath'].includes(finalType)) {
       finalType = 'zakat';

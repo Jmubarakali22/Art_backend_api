@@ -9,8 +9,8 @@ exports.getStats = async (req, res) => {
         COUNT(*) AS totalDonationsCount,
         COALESCE(SUM(CASE WHEN donation_type IN ('zakat', 'zakath') THEN amount ELSE 0 END), 0) AS totalZakat,
         COALESCE(SUM(CASE WHEN donation_type = 'sadaqah' THEN amount ELSE 0 END), 0) AS totalSadaqah,
-        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution') THEN amount ELSE 0 END), 0) AS totalMonthly,
-        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution') THEN 1 ELSE 0 END), 0) AS totalMonthlyCount,
+        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution', 'fitra') THEN amount ELSE 0 END), 0) AS totalMonthly,
+        COALESCE(SUM(CASE WHEN donation_type IN ('monthly_donation', 'monthly', 'monthly_contribution', 'fitra') THEN 1 ELSE 0 END), 0) AS totalMonthlyCount,
         COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pendingDonationsCount
       FROM donations
     `);

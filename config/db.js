@@ -1210,8 +1210,8 @@ function handleMemoryQuery(sql, params) {
     const totalAmount = memoryStore.donations.reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
     const totalZakat = memoryStore.donations.filter(d => ['zakat', 'zakath'].includes(d.donation_type)).reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
     const totalSadaqah = memoryStore.donations.filter(d => d.donation_type === 'sadaqah').reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
-    const totalMonthly = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly'].includes(d.donation_type)).reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
-    const totalMonthlyCount = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly'].includes(d.donation_type)).length;
+    const totalMonthly = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly', 'fitra'].includes(d.donation_type)).reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+    const totalMonthlyCount = memoryStore.donations.filter(d => ['monthly_contribution', 'monthly_donation', 'monthly', 'fitra'].includes(d.donation_type)).length;
     const pendingCount = memoryStore.donations.filter(d => d.status === 'pending').length;
     return [{
       totalDonationsAmount: totalAmount,
