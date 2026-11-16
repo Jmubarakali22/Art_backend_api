@@ -45,7 +45,7 @@ exports.login = async (req, res) => {
     let effectivePerms = ['*'];
     const rLower = (admin.role || '').toLowerCase().trim();
     if (rLower !== 'superadmin' && rLower !== 'super admin' && rLower !== 'super_admin') {
-      if (admin.permissions) {
+      if (admin.permissions && (Array.isArray(admin.permissions) ? admin.permissions.length > 0 : (typeof admin.permissions === 'string' && admin.permissions !== '[]' && admin.permissions !== 'null'))) {
         try {
           effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
         } catch (e) {
@@ -59,9 +59,6 @@ exports.login = async (req, res) => {
           } catch (e) {
             effectivePerms = ['dashboard'];
           }
-        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee' || rLower === 'administrator') {
-          // Standard admin / managing trustee roles have full administrative module access
-          effectivePerms = ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'];
         } else {
           effectivePerms = ['dashboard'];
         }
@@ -129,7 +126,7 @@ exports.getProfile = async (req, res) => {
     let effectivePerms = ['*'];
     const rLower = (admin.role || '').toLowerCase().trim();
     if (rLower !== 'superadmin' && rLower !== 'super admin' && rLower !== 'super_admin') {
-      if (admin.permissions) {
+      if (admin.permissions && (Array.isArray(admin.permissions) ? admin.permissions.length > 0 : (typeof admin.permissions === 'string' && admin.permissions !== '[]' && admin.permissions !== 'null'))) {
         try {
           effectivePerms = typeof admin.permissions === 'string' ? JSON.parse(admin.permissions) : admin.permissions;
         } catch (e) {
@@ -143,9 +140,6 @@ exports.getProfile = async (req, res) => {
           } catch (e) {
             effectivePerms = ['dashboard'];
           }
-        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee' || rLower === 'administrator') {
-          // Standard admin / managing trustee roles have full administrative module access
-          effectivePerms = ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'];
         } else {
           effectivePerms = ['dashboard'];
         }
@@ -264,8 +258,6 @@ exports.createAdmin = async (req, res) => {
         const rLower = assignedRole.toLowerCase().trim();
         if (rLower === 'superadmin' || rLower === 'super admin' || rLower === 'super_admin') {
           finalPerms = JSON.stringify(['*']);
-        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee') {
-          finalPerms = JSON.stringify(['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings']);
         } else {
           finalPerms = JSON.stringify(['dashboard']);
         }

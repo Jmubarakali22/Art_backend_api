@@ -203,8 +203,6 @@ exports.getUsers = async (req, res) => {
 
     // Build role permissions lookup map
     const rolePermsMap = {
-      'admin': ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'],
-      'trustee': ['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings'],
       'superadmin': ['*']
     };
     for (const r of roles) {
@@ -284,9 +282,17 @@ exports.assignUserAccess = async (req, res) => {
     }
 
     const targetRole = role !== undefined ? role : admin.role;
-    const permsVal = permissions !== undefined
-      ? (permissions === null ? null : JSON.stringify(Array.isArray(permissions) ? permissions : []))
-      : admin.permissions;
+    let permsVal = admin.permissions;
+    if (permissions !== undefined && permissions !== null) {
+      permsVal = JSON.stringify(Array.isArray(permissions) ? permissions : []);
+    } else if (role !== undefined) {
+      const roleRecords = await query('SELECT permissions FROM roles WHERE LOWER(name) = LOWER(?)', [targetRole]);
+      if (roleRecords.length > 0 && roleRecords[0].permissions) {
+        permsVal = typeof roleRecords[0].permissions === 'string'
+          ? roleRecords[0].permissions
+          : JSON.stringify(roleRecords[0].permissions);
+      }
+    }
 
     await query('UPDATE admins SET role = ?, permissions = ? WHERE id = ?', [targetRole, permsVal, userId]);
 
