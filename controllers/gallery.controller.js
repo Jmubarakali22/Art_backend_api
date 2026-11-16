@@ -1,6 +1,40 @@
 const { query } = require('../config/db');
 const { uploadToImageKit, deleteFromImageKit } = require('../config/imagekit');
 
+/**
+ * Resolves the destination folder in ImageKit based on category.
+ * Rules:
+ * - Food Distribution(Ration Kits) -> /assets/gallery-full/ration-kit-food-dist
+ * - Education & Skill (Tailoring Classes) -> /assets/gallery-full/tailoring-class
+ * - Healthcare (Free Medicine & Medical Camps) -> /assets/gallery-full/medical-help
+ * - Any other / new category -> /assets/gallery-full/<sanitized-category-slug>
+ */
+function resolveGalleryFolder(category, requestedFolder) {
+  if (requestedFolder && typeof requestedFolder === 'string') {
+    const rf = requestedFolder.trim();
+    if (rf && rf.toLowerCase() !== '/assets/gallery-full/test' && rf.toLowerCase() !== '/assets/gallery-full/test/') {
+      return rf.startsWith('/') ? rf : `/${rf}`;
+    }
+  }
+
+  const catLower = (category || '').toLowerCase().trim();
+  if (catLower.includes('food') || catLower.includes('ration')) {
+    return '/assets/gallery-full/ration-kit-food-dist';
+  }
+  if (catLower.includes('tailor') || catLower.includes('skill') || catLower.includes('education')) {
+    return '/assets/gallery-full/tailoring-class';
+  }
+  if (catLower.includes('health') || catLower.includes('medic') || catLower.includes('camp')) {
+    return '/assets/gallery-full/medical-help';
+  }
+
+  const slug = catLower
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'general';
+
+  return `/assets/gallery-full/${slug}`;
+}
+
 exports.getAll = async (req, res) => {
   try {
     const { category, is_visible } = req.query;
@@ -36,7 +70,7 @@ exports.create = async (req, res) => {
 
     let img = '';
     if (req.file) {
-      const targetFolder = req.body.folder || '/assets/gallery-full/test';
+      const targetFolder = resolveGalleryFolder(category, req.body.folder);
       const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
       img = ikResult.url;
     } else if (image_url) {
@@ -81,7 +115,7 @@ exports.update = async (req, res) => {
 
     let img = existing[0].image_url;
     if (req.file) {
-      const targetFolder = req.body.folder || '/assets/gallery-full/test';
+      const targetFolder = resolveGalleryFolder(category, req.body.folder);
       const ikResult = await uploadToImageKit(req.file, { folder: targetFolder });
       img = ikResult.url;
     } else if (image_url) {
