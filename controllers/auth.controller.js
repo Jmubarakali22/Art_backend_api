@@ -211,9 +211,23 @@ exports.updateProfile = async (req, res) => {
 
 exports.getAllAdmins = async (req, res) => {
   try {
-    const admins = await query(
-      'SELECT id, username, email, name, role, avatar, created_at FROM admins ORDER BY id ASC'
+    const rawAdmins = await query(
+      'SELECT id, username, email, name, role, permissions, avatar, created_at FROM admins ORDER BY id ASC'
     );
+    const admins = (rawAdmins || []).map(a => {
+      let perms = [];
+      if (a.permissions) {
+        try {
+          perms = typeof a.permissions === 'string' ? JSON.parse(a.permissions) : a.permissions;
+        } catch (e) {
+          perms = [];
+        }
+      }
+      return {
+        ...a,
+        permissions: Array.isArray(perms) ? perms : []
+      };
+    });
     res.json({ success: true, admins });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -222,7 +236,7 @@ exports.getAllAdmins = async (req, res) => {
 
 exports.createAdmin = async (req, res) => {
   try {
-    const { username, email, password, name, role } = req.body;
+    const { username, email, password, name, role, permissions } = req.body;
 
     if (!username || !email || !password || !name) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
@@ -234,17 +248,48 @@ exports.createAdmin = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const assignedRole = role || 'admin';
+    const assignedRole = (role && role.trim()) ? role.trim() : 'Managing Trustee';
+
+    // Determine effective permissions: use custom permissions if provided, else inherit from role
+    let finalPerms = null;
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      finalPerms = JSON.stringify(permissions);
+    } else {
+      const roleRecords = await query('SELECT permissions FROM roles WHERE LOWER(name) = LOWER(?)', [assignedRole]);
+      if (roleRecords.length > 0 && roleRecords[0].permissions) {
+        finalPerms = typeof roleRecords[0].permissions === 'string'
+          ? roleRecords[0].permissions
+          : JSON.stringify(roleRecords[0].permissions);
+      } else {
+        const rLower = assignedRole.toLowerCase().trim();
+        if (rLower === 'superadmin' || rLower === 'super admin' || rLower === 'super_admin') {
+          finalPerms = JSON.stringify(['*']);
+        } else if (rLower === 'admin' || rLower === 'managing trustee' || rLower === 'trustee') {
+          finalPerms = JSON.stringify(['dashboard', 'donations', 'causes', 'gallery', 'volunteers', 'inquiries', 'settings']);
+        } else {
+          finalPerms = JSON.stringify(['dashboard']);
+        }
+      }
+    }
 
     const result = await query(
-      'INSERT INTO admins (username, email, password, name, role) VALUES (?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, name, assignedRole]
+      'INSERT INTO admins (username, email, password, name, role, permissions) VALUES (?, ?, ?, ?, ?, ?)',
+      [username, email, hashedPassword, name, assignedRole, finalPerms]
     );
+
+    // Activity log
+    try {
+      await query(
+        'INSERT INTO activity_logs (admin_id, admin_name, action, details, ip_address) VALUES (?, ?, ?, ?, ?)',
+        [req.user?.id || 1, req.user?.name || 'Admin', 'CREATE_ADMIN', `Created user account ${name} with role ${assignedRole}`, req.ip || '127.0.0.1']
+      );
+    } catch (e) {}
 
     res.status(201).json({
       success: true,
-      message: 'Admin account created successfully.',
-      adminId: result.insertId
+      message: `Admin account for ${name} created successfully with role: ${assignedRole}.`,
+      adminId: result.insertId,
+      assignedRole
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

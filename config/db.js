@@ -1296,6 +1296,14 @@ function handleMemoryQuery(sql, params) {
 
   if (s.startsWith('insert into admins')) {
     const newId = memoryStore.admins.length + 1;
+    let storedPerms = null;
+    if (params[5]) {
+      try {
+        storedPerms = typeof params[5] === 'string' ? JSON.parse(params[5]) : params[5];
+      } catch (e) {
+        storedPerms = params[5];
+      }
+    }
     const newAdmin = {
       id: newId,
       username: params[0],
@@ -1303,6 +1311,7 @@ function handleMemoryQuery(sql, params) {
       password: params[2],
       name: params[3],
       role: params[4] || 'admin',
+      permissions: storedPerms,
       created_at: new Date().toISOString()
     };
     memoryStore.admins.push(newAdmin);

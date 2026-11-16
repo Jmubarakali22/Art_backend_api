@@ -29,8 +29,8 @@ const requireRole = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
-    const userRole = (req.user.role || '').toLowerCase().trim();
-    const allowed = roles.map(r => (r || '').toLowerCase().trim());
+    const userRole = (req.user.role || '').toLowerCase().replace(/[\s_-]/g, '');
+    const allowed = roles.map(r => (r || '').toLowerCase().replace(/[\s_-]/g, ''));
     if (!allowed.includes(userRole)) {
       return res.status(403).json({
         success: false,
