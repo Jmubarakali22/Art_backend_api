@@ -209,13 +209,24 @@ exports.create = async (req, res) => {
       }
     }
 
-    // Auto-generate voucher number if not supplied
+    // Auto-generate sequential voucher number if not supplied (e.g. EXP-2026-0001)
     let finalVoucher = (voucher_number && voucher_number.trim()) ? voucher_number.trim() : null;
     if (!finalVoucher) {
       const year = new Date(expense_date).getFullYear() || new Date().getFullYear();
-      const [maxRow] = await query('SELECT MAX(id) as max_id FROM expenses');
-      const nextId = (maxRow?.max_id || 0) + 1;
-      finalVoucher = `EXP-${year}-${String(nextId).padStart(4, '0')}`;
+      const prefix = `EXP-${year}-`;
+      const existingVouchers = await query('SELECT voucher_number FROM expenses WHERE voucher_number LIKE ?', [`${prefix}%`]);
+      let maxNum = 0;
+      if (Array.isArray(existingVouchers)) {
+        for (const row of existingVouchers) {
+          if (row.voucher_number && row.voucher_number.startsWith(prefix)) {
+            const num = parseInt(row.voucher_number.replace(prefix, ''), 10);
+            if (!isNaN(num) && num > maxNum) {
+              maxNum = num;
+            }
+          }
+        }
+      }
+      finalVoucher = `${prefix}${String(maxNum + 1).padStart(4, '0')}`;
     }
 
     const recordedBy = req.user?.name || 'Super Admin';
