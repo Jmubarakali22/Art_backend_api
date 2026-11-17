@@ -22,12 +22,12 @@ exports.getAll = async (req, res) => {
       if (catLower === 'tailoring') {
         whereClauses.push('LOWER(category) LIKE ?');
         params.push('%tailor%');
-      } else if (catLower === 'monthly ration kit' || catLower === 'monthly_ration_kit') {
-        whereClauses.push('(LOWER(category) LIKE ? OR LOWER(category) LIKE ?)');
-        params.push('%monthly%ration%', '%monthly%food%');
+      } else if (catLower === 'medical aid' || catLower === 'medical' || catLower === 'healthcare' || catLower === 'monthly ration kit' || catLower === 'monthly_ration_kit') {
+        whereClauses.push('(LOWER(category) LIKE ? OR LOWER(category) LIKE ? OR LOWER(category) LIKE ? OR LOWER(category) LIKE ?)');
+        params.push('%medic%', '%health%', '%monthly%ration%', '%monthly%food%');
       } else if (catLower === 'ration kit' || catLower === 'rationkit' || catLower === 'ration_kit') {
-        whereClauses.push('(LOWER(category) LIKE ? AND LOWER(category) NOT LIKE ?)');
-        params.push('%ration%', '%monthly%');
+        whereClauses.push('(LOWER(category) LIKE ? AND LOWER(category) NOT LIKE ? AND LOWER(category) NOT LIKE ?)');
+        params.push('%ration%', '%monthly%', '%medic%');
       } else {
         whereClauses.push('LOWER(category) = LOWER(?)');
         params.push(category);
@@ -88,8 +88,9 @@ exports.getAll = async (req, res) => {
       SELECT 
         COALESCE(SUM(amount), 0) as overall_total,
         COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%tailor%' THEN amount ELSE 0 END), 0) as tailoring_total,
-        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' THEN amount ELSE 0 END), 0) as ration_kit_total,
-        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as monthly_ration_kit_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' AND LOWER(category) NOT LIKE '%medic%' THEN amount ELSE 0 END), 0) as ration_kit_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as medical_aid_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as monthly_ration_kit_total,
         COALESCE(SUM(CASE WHEN MONTH(expense_date) = MONTH(CURRENT_DATE()) AND YEAR(expense_date) = YEAR(CURRENT_DATE()) THEN amount ELSE 0 END), 0) as current_month_total,
         COUNT(*) as total_count
       FROM expenses
@@ -99,6 +100,7 @@ exports.getAll = async (req, res) => {
       overall_total: 0,
       tailoring_total: 0,
       ration_kit_total: 0,
+      medical_aid_total: 0,
       monthly_ration_kit_total: 0,
       current_month_total: 0,
       total_count: 0
@@ -118,7 +120,8 @@ exports.getAll = async (req, res) => {
         overall_total: parseFloat(summary.overall_total),
         tailoring_total: parseFloat(summary.tailoring_total),
         ration_kit_total: parseFloat(summary.ration_kit_total),
-        monthly_ration_kit_total: parseFloat(summary.monthly_ration_kit_total),
+        medical_aid_total: parseFloat(summary.medical_aid_total || summary.monthly_ration_kit_total || 0),
+        monthly_ration_kit_total: parseFloat(summary.medical_aid_total || summary.monthly_ration_kit_total || 0),
         current_month_total: parseFloat(summary.current_month_total),
         total_count: parseInt(summary.total_count, 10)
       }
@@ -138,8 +141,9 @@ exports.getStats = async (req, res) => {
       SELECT 
         COALESCE(SUM(amount), 0) as overall_total,
         COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%tailor%' THEN amount ELSE 0 END), 0) as tailoring_total,
-        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' THEN amount ELSE 0 END), 0) as ration_kit_total,
-        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as monthly_ration_kit_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' AND LOWER(category) NOT LIKE '%medic%' THEN amount ELSE 0 END), 0) as ration_kit_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as medical_aid_total,
+        COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) as monthly_ration_kit_total,
         COALESCE(SUM(CASE WHEN MONTH(expense_date) = MONTH(CURRENT_DATE()) AND YEAR(expense_date) = YEAR(CURRENT_DATE()) THEN amount ELSE 0 END), 0) as current_month_total,
         COUNT(*) as total_count
       FROM expenses

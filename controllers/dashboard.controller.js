@@ -48,7 +48,7 @@ exports.getStats = async (req, res) => {
     `);
 
     // 6. Expenses Stats (Tracking expenditures spent from donations)
-    let expenseStats = [{ totalExpensesAmount: 0, totalExpensesCount: 0, tailoringTotal: 0, rationKitTotal: 0, monthlyRationKitTotal: 0 }];
+    let expenseStats = [{ totalExpensesAmount: 0, totalExpensesCount: 0, tailoringTotal: 0, rationKitTotal: 0, medicalAidTotal: 0, monthlyRationKitTotal: 0 }];
     let recentExpenses = [];
     try {
       expenseStats = await query(`
@@ -56,8 +56,9 @@ exports.getStats = async (req, res) => {
           COALESCE(SUM(amount), 0) AS totalExpensesAmount,
           COUNT(*) AS totalExpensesCount,
           COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%tailor%' THEN amount ELSE 0 END), 0) AS tailoringTotal,
-          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' THEN amount ELSE 0 END), 0) AS rationKitTotal,
-          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) AS monthlyRationKitTotal
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' AND LOWER(category) NOT LIKE '%medic%' THEN amount ELSE 0 END), 0) AS rationKitTotal,
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) AS medicalAidTotal,
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%medic%' OR LOWER(category) LIKE '%health%' OR LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) AS monthlyRationKitTotal
         FROM expenses
       `);
 
@@ -139,7 +140,8 @@ exports.getStats = async (req, res) => {
         totalExpensesCount: parseInt(expenseStats[0]?.totalExpensesCount || 0, 10),
         tailoringExpenses: parseFloat(expenseStats[0]?.tailoringTotal || 0),
         rationKitExpenses: parseFloat(expenseStats[0]?.rationKitTotal || 0),
-        monthlyRationKitExpenses: parseFloat(expenseStats[0]?.monthlyRationKitTotal || 0),
+        medicalAidExpenses: parseFloat(expenseStats[0]?.medicalAidTotal || expenseStats[0]?.monthlyRationKitTotal || 0),
+        monthlyRationKitExpenses: parseFloat(expenseStats[0]?.medicalAidTotal || expenseStats[0]?.monthlyRationKitTotal || 0),
         netBalance: totDonations - totExpenses
       },
       recentDonations,
