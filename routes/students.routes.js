@@ -3,7 +3,13 @@ const router = express.Router();
 const studentsController = require('../controllers/students.controller');
 const { authMiddleware } = require('../middleware/auth');
 
-// Public route for Google Forms / Website registration form webhook
+// Public routes for Website registration form & Webhooks
+router.get('/public', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Ar Rahman Trust Tailoring Students Public Submission API is online. Submit via POST.'
+  });
+});
 router.post('/public', studentsController.createPublic);
 
 // Protected routes for Admin panel
