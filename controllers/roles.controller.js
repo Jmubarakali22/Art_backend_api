@@ -8,6 +8,7 @@ const AVAILABLE_PAGES = [
   { key: 'causes', name: 'Causes & Programs', description: 'Charity causes, goal amounts, and relief projects' },
   { key: 'gallery', name: 'Photo Gallery', description: 'Relief event photos, activities, and community outreach images' },
   { key: 'volunteers', name: 'Volunteers', description: 'Volunteer registrations, applications, and status' },
+  { key: 'students', name: 'Tailoring Students', description: 'Tailoring student applications, Google Form sync, selection, and batch management' },
   { key: 'inquiries', name: 'Contact Inquiries', description: 'Public inquiries, feedback, and support tickets' },
   { key: 'settings', name: 'Trust Settings', description: 'Charity identity, UPI ID, contact details, auto-logout' },
   { key: 'admins', name: 'Admin Accounts', description: 'Manage staff admin accounts, passwords, and user records' },

@@ -60,6 +60,7 @@ app.use('/api/expenses', require('./routes/expenses.routes'));
 app.use('/api/causes', require('./routes/causes.routes'));
 app.use('/api/gallery', require('./routes/gallery.routes'));
 app.use('/api/volunteers', require('./routes/volunteers.routes'));
+app.use('/api/students', require('./routes/students.routes'));
 app.use('/api/contacts', require('./routes/contacts.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));
 app.use('/api/whatsapp', require('./routes/whatsapp.routes'));
