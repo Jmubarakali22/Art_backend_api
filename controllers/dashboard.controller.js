@@ -47,7 +47,31 @@ exports.getStats = async (req, res) => {
       FROM contact_inquiries
     `);
 
-    // 6. Recent 5 donations
+    // 6. Expenses Stats (Tracking expenditures spent from donations)
+    let expenseStats = [{ totalExpensesAmount: 0, totalExpensesCount: 0, tailoringTotal: 0, rationKitTotal: 0, monthlyRationKitTotal: 0 }];
+    let recentExpenses = [];
+    try {
+      expenseStats = await query(`
+        SELECT 
+          COALESCE(SUM(amount), 0) AS totalExpensesAmount,
+          COUNT(*) AS totalExpensesCount,
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%tailor%' THEN amount ELSE 0 END), 0) AS tailoringTotal,
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%ration%' AND LOWER(category) NOT LIKE '%monthly%' THEN amount ELSE 0 END), 0) AS rationKitTotal,
+          COALESCE(SUM(CASE WHEN LOWER(category) LIKE '%monthly%ration%' OR LOWER(category) LIKE '%monthly%food%' THEN amount ELSE 0 END), 0) AS monthlyRationKitTotal
+        FROM expenses
+      `);
+
+      recentExpenses = await query(`
+        SELECT id, title, category, amount, vendor_payee, payment_method, expense_date, voucher_number, status
+        FROM expenses
+        ORDER BY expense_date DESC, id DESC
+        LIMIT 5
+      `);
+    } catch (expErr) {
+      console.warn('Expenses table query warning:', expErr.message);
+    }
+
+    // 7. Recent 5 donations
     const recentDonations = await query(`
       SELECT id, donor_name, donor_phone, amount, donation_type, payment_method, status, created_at, receipt_number
       FROM donations
@@ -55,7 +79,7 @@ exports.getStats = async (req, res) => {
       LIMIT 5
     `);
 
-    // 7. Monthly donations breakdown (Last 6 months)
+    // 8. Monthly donations breakdown (Last 6 months)
     const monthlyTrends = await query(`
       SELECT 
         DATE_FORMAT(created_at, '%b %Y') AS month_label,
@@ -69,7 +93,7 @@ exports.getStats = async (req, res) => {
       LIMIT 6
     `);
 
-    // 8. Breakdown by category/type
+    // 9. Breakdown by category/type
     const typeBreakdown = await query(`
       SELECT 
         donation_type,
@@ -79,7 +103,7 @@ exports.getStats = async (req, res) => {
       GROUP BY donation_type
     `);
 
-    // 9. Recent Activity Logs
+    // 10. Recent Activity Logs
     const recentActivity = await query(`
       SELECT id, admin_name, action, details, created_at
       FROM activity_logs
@@ -87,10 +111,13 @@ exports.getStats = async (req, res) => {
       LIMIT 6
     `);
 
+    const totDonations = parseFloat(donationStats[0]?.totalDonationsAmount || 0);
+    const totExpenses = parseFloat(expenseStats[0]?.totalExpensesAmount || 0);
+
     res.json({
       success: true,
       stats: {
-        totalDonationsAmount: parseFloat(donationStats[0]?.totalDonationsAmount || 0),
+        totalDonationsAmount: totDonations,
         totalDonationsCount: parseInt(donationStats[0]?.totalDonationsCount || 0, 10),
         totalZakat: parseFloat(donationStats[0]?.totalZakat || 0),
         totalSadaqah: parseFloat(donationStats[0]?.totalSadaqah || 0),
@@ -106,9 +133,17 @@ exports.getStats = async (req, res) => {
         approvedVolunteers: parseInt(volunteerStats[0]?.approvedVolunteers || 0, 10),
         pendingVolunteers: parseInt(volunteerStats[0]?.pendingVolunteers || 0, 10),
         totalInquiries: parseInt(inquiryStats[0]?.totalInquiries || 0, 10),
-        unreadInquiries: parseInt(inquiryStats[0]?.unreadInquiries || 0, 10)
+        unreadInquiries: parseInt(inquiryStats[0]?.unreadInquiries || 0, 10),
+        // Expenses Tracking
+        totalExpensesAmount: totExpenses,
+        totalExpensesCount: parseInt(expenseStats[0]?.totalExpensesCount || 0, 10),
+        tailoringExpenses: parseFloat(expenseStats[0]?.tailoringTotal || 0),
+        rationKitExpenses: parseFloat(expenseStats[0]?.rationKitTotal || 0),
+        monthlyRationKitExpenses: parseFloat(expenseStats[0]?.monthlyRationKitTotal || 0),
+        netBalance: totDonations - totExpenses
       },
       recentDonations,
+      recentExpenses,
       monthlyTrends: monthlyTrends.reverse(),
       typeBreakdown,
       recentActivity
