@@ -259,11 +259,11 @@ exports.create = async (req, res) => {
       }
     }
 
-    // Auto-generate sequential voucher number if not supplied (e.g. EXP-2026-0001)
+    // Auto-generate sequential voucher number if not supplied (e.g. EXP20260001)
     let finalVoucher = (voucher_number && voucher_number.trim()) ? voucher_number.trim() : null;
     if (!finalVoucher) {
       const year = new Date(expense_date).getFullYear() || new Date().getFullYear();
-      const prefix = `EXP-${year}-`;
+      const prefix = `EXP${year}`;
       const existingVouchers = await query('SELECT voucher_number FROM expenses WHERE voucher_number LIKE ?', [`${prefix}%`]);
       let maxNum = 0;
       if (Array.isArray(existingVouchers)) {
@@ -277,6 +277,9 @@ exports.create = async (req, res) => {
         }
       }
       finalVoucher = `${prefix}${String(maxNum + 1).padStart(4, '0')}`;
+    } else {
+      // Normalize any hyphens if entered (e.g. EXP-2026-0008 -> EXP20260008)
+      finalVoucher = finalVoucher.replace(/EXP[-_ ]?(\d{4})[-_ ]?/i, 'EXP$1').toUpperCase();
     }
 
     const recordedBy = req.user?.name || 'Super Admin';
@@ -367,7 +370,7 @@ exports.update = async (req, res) => {
     const updatedDate = expense_date !== undefined ? expense_date : current.expense_date;
     const updatedMethod = payment_method !== undefined ? payment_method.trim() : current.payment_method;
     const updatedVendor = vendor_payee !== undefined ? (vendor_payee ? vendor_payee.trim() : null) : current.vendor_payee;
-    const updatedVoucher = voucher_number !== undefined ? (voucher_number ? voucher_number.trim() : null) : current.voucher_number;
+    const updatedVoucher = voucher_number !== undefined ? (voucher_number ? voucher_number.trim().replace(/EXP[-_ ]?(\d{4})[-_ ]?/i, 'EXP$1').toUpperCase() : null) : current.voucher_number;
     const updatedStatus = status !== undefined ? status.trim() : current.status;
     const updatedNotes = notes !== undefined ? (notes ? notes.trim() : null) : current.notes;
 
