@@ -33,18 +33,71 @@ function isConfigured() {
 }
 
 /**
- * Upload a file to ImageKit
- * @param {Object} file - Multer file object
- * @param {Object} options - Upload options (folder, fileName)
+ * Ensure/create folder hierarchy in ImageKit if not already present
+ * @param {string} folderPath e.g. '/assets/expenses-management/tailoring-class'
  */
-async function uploadToImageKit(file, options = {}) {
+async function ensureImageKitFolder(folderPath) {
+  if (!isConfigured() || !folderPath) return false;
+  try {
+    const parts = folderPath.split('/').filter(Boolean);
+    let currentParent = '/';
+    for (const part of parts) {
+      try {
+        await imagekitInstance.createFolder({
+          folderName: part,
+          parentFolderPath: currentParent
+        });
+      } catch (err) {
+        // Ignored: ImageKit returns empty or error if already exists
+      }
+      currentParent = currentParent === '/' ? `/${part}` : `${currentParent}/${part}`;
+    }
+    return true;
+  } catch (error) {
+    console.warn('[ImageKit Warning] Folder verification error:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Upload a file to ImageKit
+ * Supports images as well as PDF documents.
+ * Automatically ensures folder structure exists in ImageKit.
+ * @param {Object|string} file - Multer file object or local file path
+ * @param {Object|string} options - Upload options { folder, fileName } or fileName string
+ * @param {string} [legacyFolder] - Optional legacy 3rd param for folder
+ */
+async function uploadToImageKit(file, options = {}, legacyFolder) {
+  if (typeof options === 'string') {
+    options = {
+      fileName: options,
+      folder: legacyFolder || defaultFolder
+    };
+  }
+
   const folder = options.folder || defaultFolder;
-  const fileName = options.fileName || file.originalname || `photo_${Date.now()}.png`;
+  const fileName = options.fileName || 
+    (typeof file === 'object' && file ? (file.originalname || file.filename) : null) || 
+    (typeof file === 'string' ? path.basename(file) : null) || 
+    `attachment_${Date.now()}.png`;
 
   if (isConfigured()) {
     try {
-      // Read file buffer from disk or memory
-      const fileData = file.buffer || fs.readFileSync(file.path);
+      // Ensure target folder hierarchy exists in ImageKit
+      await ensureImageKitFolder(folder);
+
+      // Read file buffer from disk, memory, or string path
+      let fileData;
+      if (typeof file === 'string') {
+        fileData = fs.readFileSync(file);
+      } else if (file && file.buffer) {
+        fileData = file.buffer;
+      } else if (file && file.path) {
+        fileData = fs.readFileSync(file.path);
+      } else {
+        throw new Error('No valid file object or path provided for ImageKit upload');
+      }
+
       const base64File = fileData.toString('base64');
 
       const response = await imagekitInstance.upload({
@@ -69,7 +122,10 @@ async function uploadToImageKit(file, options = {}) {
     }
   } else {
     // When keys are not yet provided in .env, serve directly from local /uploads to prevent 404
-    const localUrl = `http://localhost:5000/uploads/${file.filename}`;
+    const filename = (typeof file === 'object' && file && file.filename) 
+      ? file.filename 
+      : path.basename(typeof file === 'string' ? file : fileName);
+    const localUrl = `http://localhost:5000/uploads/${filename}`;
     console.warn(`[ImageKit Notice] ImageKit API keys (IMAGEKIT_PRIVATE_KEY) not found in backend/.env.`);
     console.warn(`[ImageKit Notice] File safely saved locally and served at: ${localUrl}`);
     console.warn(`[ImageKit Tip] Add your ImageKit Private Key in backend/.env to push directly to https://ik.imagekit.io/baaidzoik${folder}`);
@@ -149,6 +205,7 @@ module.exports = {
   isConfigured,
   uploadToImageKit,
   deleteFromImageKit,
+  ensureImageKitFolder,
   urlEndpoint,
   defaultFolder
 };

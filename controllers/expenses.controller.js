@@ -1,6 +1,46 @@
-const { query } = require('../config/db');
-const { uploadToImageKit } = require('../config/imagekit');
+const path = require('path');
 const fs = require('fs');
+const { query } = require('../config/db');
+const { uploadToImageKit, deleteFromImageKit, ensureImageKitFolder } = require('../config/imagekit');
+
+/**
+ * Determine the ImageKit folder for an expense based on its category
+ * Base: /assets/expenses-management
+ * Preset mappings:
+ *   - Tailoring / Tailoring Class -> /assets/expenses-management/tailoring-class
+ *   - Ration Kit -> /assets/expenses-management/ration-kit
+ *   - Medical Aid / Healthcare -> /assets/expenses-management/medical-aid
+ * Dynamic category creation:
+ *   - Any new/custom category -> /assets/expenses-management/<slugified-category>
+ */
+function getExpenseImageKitFolder(category) {
+  const base = '/assets/expenses-management';
+  if (!category || typeof category !== 'string') {
+    return `${base}/general`;
+  }
+
+  const catLower = category.toLowerCase().trim();
+
+  // 1. Tailoring Class
+  if (catLower.includes('tailor')) {
+    return `${base}/tailoring-class`;
+  }
+  // 2. Ration Kit
+  if (catLower.includes('ration')) {
+    return `${base}/ration-kit`;
+  }
+  // 3. Medical Aid
+  if (catLower.includes('medic') || catLower.includes('health')) {
+    return `${base}/medical-aid`;
+  }
+
+  // 4. Dynamic category folder creation (e.g. "Food Drive" -> "food-drive")
+  const slug = catLower
+    .replace(/[^a-z0-9]+/g, '-')   // Replace non-alphanumeric chars with hyphen
+    .replace(/^-+|-+$/g, '');       // Trim leading/trailing hyphens
+
+  return slug ? `${base}/${slug}` : `${base}/general`;
+}
 
 /**
  * Get all expenses with filtering, pagination, and category summary
@@ -19,7 +59,7 @@ exports.getAll = async (req, res) => {
     // Category filter
     if (category && category !== 'all' && category !== 'All') {
       const catLower = category.toLowerCase().trim();
-      if (catLower === 'tailoring') {
+      if (catLower === 'tailoring' || catLower === 'tailoring class' || catLower === 'tailoring-class') {
         whereClauses.push('LOWER(category) LIKE ?');
         params.push('%tailor%');
       } else if (catLower === 'medical aid' || catLower === 'medical' || catLower === 'healthcare' || catLower === 'monthly ration kit' || catLower === 'monthly_ration_kit') {
@@ -200,14 +240,18 @@ exports.create = async (req, res) => {
 
     let finalReceiptUrl = receipt_url || null;
 
-    // Handle receipt file upload if present
+    // Handle receipt/bill file upload if present (images or PDF)
     if (req.file) {
       try {
-        const ikRes = await uploadToImageKit(
-          req.file.path,
-          `expense_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
-          '/assets/expenses'
-        );
+        const targetFolder = getExpenseImageKitFolder(category);
+        const ext = path.extname(req.file.originalname).toLowerCase() || '';
+        const cleanBase = path.basename(req.file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fileName = `bill_${Date.now()}_${cleanBase}${ext}`;
+
+        const ikRes = await uploadToImageKit(req.file, {
+          fileName,
+          folder: targetFolder
+        });
         finalReceiptUrl = ikRes.url;
         try { fs.unlinkSync(req.file.path); } catch (e) {}
       } catch (uploadErr) {
@@ -293,14 +337,25 @@ exports.update = async (req, res) => {
 
     let finalReceiptUrl = receipt_url !== undefined ? receipt_url : current.receipt_url;
 
+    const updatedCategory = category !== undefined ? category.trim() : current.category;
+
     if (req.file) {
       try {
-        const ikRes = await uploadToImageKit(
-          req.file.path,
-          `expense_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
-          '/assets/expenses'
-        );
+        const targetFolder = getExpenseImageKitFolder(updatedCategory);
+        const ext = path.extname(req.file.originalname).toLowerCase() || '';
+        const cleanBase = path.basename(req.file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fileName = `bill_${Date.now()}_${cleanBase}${ext}`;
+
+        const ikRes = await uploadToImageKit(req.file, {
+          fileName,
+          folder: targetFolder
+        });
         finalReceiptUrl = ikRes.url;
+
+        // Clean up previous receipt from ImageKit if replaced
+        if (current.receipt_url && current.receipt_url !== ikRes.url) {
+          try { await deleteFromImageKit(current.receipt_url); } catch (e) {}
+        }
         try { fs.unlinkSync(req.file.path); } catch (e) {}
       } catch (uploadErr) {
         console.error('ImageKit expense upload error:', uploadErr);
@@ -308,7 +363,6 @@ exports.update = async (req, res) => {
     }
 
     const updatedTitle = title !== undefined ? title.trim() : current.title;
-    const updatedCategory = category !== undefined ? category.trim() : current.category;
     const updatedAmount = amount !== undefined ? parseFloat(amount) : current.amount;
     const updatedDate = expense_date !== undefined ? expense_date : current.expense_date;
     const updatedMethod = payment_method !== undefined ? payment_method.trim() : current.payment_method;
@@ -366,6 +420,11 @@ exports.delete = async (req, res) => {
     }
 
     await query('DELETE FROM expenses WHERE id = ?', [id]);
+
+    // Clean up bill/receipt from ImageKit if attached
+    if (existing[0].receipt_url) {
+      try { await deleteFromImageKit(existing[0].receipt_url); } catch (e) {}
+    }
 
     // Activity log
     try {
