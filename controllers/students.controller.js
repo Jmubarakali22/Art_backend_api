@@ -1,5 +1,28 @@
 const { query } = require('../config/db');
 
+// Helper to calculate age from date of birth (e.g. 16/04/2002 or 2002-04-16)
+function calculateAgeFromDob(dobStr) {
+  if (!dobStr) return null;
+  const s = String(dobStr).trim();
+  let birthDate = null;
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const parts = s.split('/');
+    birthDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+  } else if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+    birthDate = new Date(s);
+  }
+  if (birthDate && !isNaN(birthDate.getTime())) {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 && age < 120 ? age : null;
+  }
+  return null;
+}
+
 // Helper to generate unique student code like STU20260001
 async function generateStudentCode() {
   const currentYear = new Date().getFullYear();
@@ -34,6 +57,17 @@ exports.createPublic = async (req, res) => {
       whatsapp_number,
       whatsapp,
       age,
+      dob,
+      date_of_birth,
+      email,
+      marital_status,
+      father_name,
+      mother_name,
+      spouse_name,
+      father_spouse_occupation,
+      occupation,
+      aadhar_card_url,
+      aadhar_card,
       address,
       village,
       qualification,
@@ -60,17 +94,21 @@ exports.createPublic = async (req, res) => {
     const studentCode = await generateStudentCode();
     const cleanPhone = String(studentPhone).replace(/[^0-9+]/g, '');
     const cleanWa = whatsapp_number || whatsapp ? String(whatsapp_number || whatsapp).replace(/[^0-9+]/g, '') : cleanPhone;
-    const cleanAge = age ? parseInt(age, 10) : null;
+    const finalDob = dob || date_of_birth || null;
+    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(finalDob);
     const finalAddress = address || village || null;
     const finalQual = qualification || education || null;
     const finalBatch = batch_preference || batch || 'Morning';
+    const finalOcc = father_spouse_occupation || occupation || null;
+    const finalAadhar = aadhar_card_url || aadhar_card || null;
 
     const insertSql = `
       INSERT INTO tailoring_students (
-        student_code, full_name, phone, whatsapp_number, age,
+        student_code, full_name, phone, whatsapp_number, email, age, dob,
+        marital_status, father_name, mother_name, spouse_name, father_spouse_occupation, aadhar_card_url,
         address, qualification, batch_preference, has_prior_experience,
         family_income, guardian_name, notes, source, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied')
     `;
 
     const result = await query(insertSql, [
@@ -78,7 +116,15 @@ exports.createPublic = async (req, res) => {
       studentName.trim(),
       cleanPhone,
       cleanWa,
+      email || null,
       cleanAge,
+      finalDob,
+      marital_status || null,
+      father_name || null,
+      mother_name || null,
+      spouse_name || null,
+      finalOcc,
+      finalAadhar,
       finalAddress,
       finalQual,
       finalBatch,
@@ -204,6 +250,14 @@ exports.create = async (req, res) => {
       phone,
       whatsapp_number,
       age,
+      dob,
+      email,
+      marital_status,
+      father_name,
+      mother_name,
+      spouse_name,
+      father_spouse_occupation,
+      aadhar_card_url,
       address,
       qualification,
       batch_preference = 'Morning',
@@ -222,14 +276,16 @@ exports.create = async (req, res) => {
     const studentCode = await generateStudentCode();
     const cleanPhone = String(phone).replace(/[^0-9+]/g, '');
     const cleanWa = whatsapp_number ? String(whatsapp_number).replace(/[^0-9+]/g, '') : cleanPhone;
+    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(dob);
     const selectedDate = status === 'selected' ? new Date() : null;
 
     const sql = `
       INSERT INTO tailoring_students (
-        student_code, full_name, phone, whatsapp_number, age,
+        student_code, full_name, phone, whatsapp_number, email, age, dob,
+        marital_status, father_name, mother_name, spouse_name, father_spouse_occupation, aadhar_card_url,
         address, qualification, batch_preference, has_prior_experience,
         family_income, guardian_name, status, selected_date, notes, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const result = await query(sql, [
@@ -237,7 +293,15 @@ exports.create = async (req, res) => {
       full_name.trim(),
       cleanPhone,
       cleanWa,
-      age ? parseInt(age, 10) : null,
+      email || null,
+      cleanAge,
+      dob || null,
+      marital_status || null,
+      father_name || null,
+      mother_name || null,
+      spouse_name || null,
+      father_spouse_occupation || null,
+      aadhar_card_url || null,
       address || null,
       qualification || null,
       batch_preference,
@@ -315,6 +379,14 @@ exports.update = async (req, res) => {
       phone,
       whatsapp_number,
       age,
+      dob,
+      email,
+      marital_status,
+      father_name,
+      mother_name,
+      spouse_name,
+      father_spouse_occupation,
+      aadhar_card_url,
       address,
       qualification,
       batch_preference,
@@ -325,12 +397,22 @@ exports.update = async (req, res) => {
       notes
     } = req.body;
 
+    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(dob);
+
     const sql = `
       UPDATE tailoring_students SET
         full_name = ?,
         phone = ?,
         whatsapp_number = ?,
+        email = ?,
         age = ?,
+        dob = ?,
+        marital_status = ?,
+        father_name = ?,
+        mother_name = ?,
+        spouse_name = ?,
+        father_spouse_occupation = ?,
+        aadhar_card_url = ?,
         address = ?,
         qualification = ?,
         batch_preference = ?,
@@ -343,10 +425,18 @@ exports.update = async (req, res) => {
     `;
 
     await query(sql, [
-      full_name.trim(),
+      full_name ? full_name.trim() : null,
       phone,
       whatsapp_number,
-      age ? parseInt(age, 10) : null,
+      email || null,
+      cleanAge,
+      dob || null,
+      marital_status || null,
+      father_name || null,
+      mother_name || null,
+      spouse_name || null,
+      father_spouse_occupation || null,
+      aadhar_card_url || null,
       address,
       qualification,
       batch_preference,
