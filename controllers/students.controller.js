@@ -56,6 +56,13 @@ function resolveAge(dob, ageInput) {
   return null;
 }
 
+// Helper to verify if the authenticated user is Super Admin
+function isSuperAdminUser(user) {
+  if (!user || !user.role) return false;
+  const r = (user.role || '').toLowerCase().trim();
+  return r === 'superadmin' || r === 'super admin' || r === 'super_admin';
+}
+
 // Helper to generate unique student code like STU20260001
 async function generateStudentCode() {
   const currentYear = new Date().getFullYear();
@@ -306,6 +313,8 @@ exports.create = async (req, res) => {
       address,
       qualification,
       batch_preference = 'Morning',
+      batch_number,
+      batch_timing,
       has_prior_experience = 'No',
       family_income,
       guardian_name,
@@ -328,9 +337,9 @@ exports.create = async (req, res) => {
       INSERT INTO tailoring_students (
         student_code, full_name, phone, whatsapp_number, email, age, dob,
         marital_status, father_name, mother_name, spouse_name, father_spouse_occupation, aadhar_card_url,
-        address, qualification, batch_preference, has_prior_experience,
+        address, qualification, batch_preference, batch_number, batch_timing, has_prior_experience,
         family_income, guardian_name, status, selected_date, notes, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const result = await query(sql, [
@@ -350,6 +359,8 @@ exports.create = async (req, res) => {
       address || null,
       qualification || null,
       batch_preference,
+      batch_number || null,
+      batch_timing || null,
       has_prior_experience,
       family_income || null,
       guardian_name || null,
@@ -387,6 +398,14 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
+    // RBAC: Only Super Admin can select (approve), reject, or reset students
+    if (!isSuperAdminUser(req.user) && (status === 'selected' || status === 'rejected' || status === 'applied')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied. Only Super Admin has authority to select, approve, or reject students.'
+      });
+    }
+
     let extraSet = '';
     let params = [status];
 
@@ -413,11 +432,81 @@ exports.updateStatus = async (req, res) => {
 };
 
 /**
- * Admin: Update full student details
+ * Tailoring Class Staff & Super Admin: Assign student to Batch Number and Batch Timing
+ * PATCH /api/students/:id/assign-batch
+ */
+exports.assignBatch = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { batch_number, batch_timing, notes, status } = req.body;
+
+    const rows = await query('SELECT id, student_code, full_name, status, phone, whatsapp_number, batch_preference FROM tailoring_students WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Student not found.' });
+    }
+
+    const student = rows[0];
+
+    // Non-super-admins cannot assign batch to students that haven't been selected yet
+    if (student.status === 'applied' && !isSuperAdminUser(req.user)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This student has not been selected yet. Super Admin must select the student before assigning a batch.'
+      });
+    }
+
+    // Default status to 'in_training' if student was 'selected', or keep current status
+    const newStatus = status || (student.status === 'selected' ? 'in_training' : student.status);
+
+    const sql = `
+      UPDATE tailoring_students SET
+        batch_number = ?,
+        batch_timing = ?,
+        batch_preference = COALESCE(?, batch_preference),
+        status = ?,
+        notes = COALESCE(?, notes)
+      WHERE id = ?
+    `;
+
+    await query(sql, [
+      batch_number || null,
+      batch_timing || null,
+      batch_timing || null,
+      newStatus,
+      notes !== undefined ? notes : null,
+      id
+    ]);
+
+    res.json({
+      success: true,
+      message: `Batch successfully assigned to ${student.full_name} (${batch_number || 'Batch'} - ${batch_timing || ''}).`,
+      data: {
+        id,
+        batch_number,
+        batch_timing,
+        status: newStatus
+      }
+    });
+  } catch (error) {
+    console.error('[StudentsController] assignBatch error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Super Admin ONLY: Update full student details
  * PUT /api/students/:id
  */
 exports.update = async (req, res) => {
   try {
+    // RBAC: Only Super Admin can edit student personal records
+    if (!isSuperAdminUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied. Only Super Admin can edit student details.'
+      });
+    }
+
     const id = parseInt(req.params.id, 10);
     const {
       full_name,
@@ -435,6 +524,8 @@ exports.update = async (req, res) => {
       address,
       qualification,
       batch_preference,
+      batch_number,
+      batch_timing,
       has_prior_experience,
       family_income,
       guardian_name,
@@ -461,6 +552,8 @@ exports.update = async (req, res) => {
         address = ?,
         qualification = ?,
         batch_preference = ?,
+        batch_number = ?,
+        batch_timing = ?,
         has_prior_experience = ?,
         family_income = ?,
         guardian_name = ?,
@@ -485,6 +578,8 @@ exports.update = async (req, res) => {
       address,
       qualification,
       batch_preference,
+      batch_number || null,
+      batch_timing || null,
       has_prior_experience,
       family_income,
       guardian_name,
@@ -501,11 +596,19 @@ exports.update = async (req, res) => {
 };
 
 /**
- * Admin: Delete student
+ * Super Admin ONLY: Delete student
  * DELETE /api/students/:id
  */
 exports.delete = async (req, res) => {
   try {
+    // RBAC: Only Super Admin can delete student records
+    if (!isSuperAdminUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied. Only Super Admin can delete student records.'
+      });
+    }
+
     const id = parseInt(req.params.id, 10);
     await query('DELETE FROM tailoring_students WHERE id = ?', [id]);
     res.json({ success: true, message: 'Student deleted successfully.' });

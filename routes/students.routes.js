@@ -18,6 +18,7 @@ router.get('/stats', authMiddleware, studentsController.getStats);
 router.get('/:id', authMiddleware, studentsController.getById);
 router.post('/', authMiddleware, studentsController.create);
 router.patch('/:id/status', authMiddleware, studentsController.updateStatus);
+router.patch('/:id/assign-batch', authMiddleware, studentsController.assignBatch);
 router.put('/:id', authMiddleware, studentsController.update);
 router.delete('/:id', authMiddleware, studentsController.delete);
 
