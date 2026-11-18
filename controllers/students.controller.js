@@ -616,3 +616,46 @@ exports.delete = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Get connected Google Sheet URL for Tailoring Students
+ * GET /api/students/config/sheet-url
+ */
+exports.getSheetUrl = async (req, res) => {
+  try {
+    const rows = await query('SELECT setting_value FROM trust_settings WHERE setting_key = ?', ['tailoring_google_sheet_url']);
+    const url = rows.length > 0 && rows[0].setting_value ? rows[0].setting_value : '';
+    res.json({ success: true, url });
+  } catch (error) {
+    console.error('[StudentsController] getSheetUrl error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Save connected Google Sheet URL for Tailoring Students
+ * POST /api/students/config/sheet-url
+ */
+exports.saveSheetUrl = async (req, res) => {
+  try {
+    const { url } = req.body;
+    const cleanUrl = typeof url === 'string' ? url.trim() : '';
+
+    await query(
+      `INSERT INTO trust_settings (setting_key, setting_value, description)
+       VALUES ('tailoring_google_sheet_url', ?, 'Connected Google Sheet URL for Tailoring student registration responses')
+       ON DUPLICATE KEY UPDATE setting_value = ?`,
+      [cleanUrl, cleanUrl]
+    );
+
+    res.json({
+      success: true,
+      message: 'Google Sheet URL saved successfully.',
+      url: cleanUrl
+    });
+  } catch (error) {
+    console.error('[StudentsController] saveSheetUrl error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

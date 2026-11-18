@@ -15,6 +15,8 @@ router.post('/public', studentsController.createPublic);
 // Protected routes for Admin panel
 router.get('/', authMiddleware, studentsController.getAll);
 router.get('/stats', authMiddleware, studentsController.getStats);
+router.get('/config/sheet-url', authMiddleware, studentsController.getSheetUrl);
+router.post('/config/sheet-url', authMiddleware, studentsController.saveSheetUrl);
 router.get('/:id', authMiddleware, studentsController.getById);
 router.post('/', authMiddleware, studentsController.create);
 router.patch('/:id/status', authMiddleware, studentsController.updateStatus);
