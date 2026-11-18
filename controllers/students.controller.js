@@ -1,16 +1,34 @@
 const { query } = require('../config/db');
 
-// Helper to calculate age from date of birth (e.g. 16/04/2002 or 2002-04-16)
+// Helper to calculate current age from date of birth (e.g. 16/04/2002, 16-04-2002, or 2002-04-16)
 function calculateAgeFromDob(dobStr) {
   if (!dobStr) return null;
   const s = String(dobStr).trim();
   let birthDate = null;
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const parts = s.split('/');
-    birthDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-  } else if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
-    birthDate = new Date(s);
+  
+  // DD/MM/YYYY or DD-MM-YYYY or D/M/YYYY
+  const dmyMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1;
+    const year = parseInt(dmyMatch[3], 10);
+    birthDate = new Date(year, month, day);
+  } else {
+    // YYYY-MM-DD or YYYY/MM/DD
+    const ymdMatch = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const month = parseInt(ymdMatch[2], 10) - 1;
+      const day = parseInt(ymdMatch[3], 10);
+      birthDate = new Date(year, month, day);
+    } else {
+      const parsed = new Date(s);
+      if (!isNaN(parsed.getTime())) {
+        birthDate = parsed;
+      }
+    }
   }
+
   if (birthDate && !isNaN(birthDate.getTime())) {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -18,7 +36,22 @@ function calculateAgeFromDob(dobStr) {
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    return age > 0 && age < 120 ? age : null;
+    return age >= 10 && age <= 100 ? age : null;
+  }
+  return null;
+}
+
+// Helper to determine the true current age (DOB calculation has top priority, never allows garbage numbers like 34567)
+function resolveAge(dob, ageInput) {
+  if (dob) {
+    const calculated = calculateAgeFromDob(dob);
+    if (calculated !== null) return calculated;
+  }
+  if (ageInput !== undefined && ageInput !== null && ageInput !== '') {
+    const parsed = parseInt(ageInput, 10);
+    if (!isNaN(parsed) && parsed >= 10 && parsed <= 100) {
+      return parsed;
+    }
   }
   return null;
 }
@@ -95,7 +128,7 @@ exports.createPublic = async (req, res) => {
     const cleanPhone = String(studentPhone).replace(/[^0-9+]/g, '');
     const cleanWa = whatsapp_number || whatsapp ? String(whatsapp_number || whatsapp).replace(/[^0-9+]/g, '') : cleanPhone;
     const finalDob = dob || date_of_birth || null;
-    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(finalDob);
+    const cleanAge = resolveAge(finalDob, age);
     const finalAddress = address || village || null;
     const finalQual = qualification || education || null;
     const finalBatch = batch_preference || batch || 'Morning';
@@ -181,7 +214,12 @@ exports.getAll = async (req, res) => {
     const sql = `SELECT * FROM tailoring_students ${whereSql} ORDER BY id DESC`;
     const students = await query(sql, params);
 
-    res.json({ success: true, data: students });
+    const mapped = (students || []).map(s => ({
+      ...s,
+      age: resolveAge(s.dob, s.age)
+    }));
+
+    res.json({ success: true, data: mapped });
   } catch (error) {
     console.error('[StudentsController] getAll error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -199,7 +237,14 @@ exports.getById = async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Student not found.' });
     }
-    res.json({ success: true, data: rows[0] });
+    const student = rows[0];
+    res.json({
+      success: true,
+      data: {
+        ...student,
+        age: resolveAge(student.dob, student.age)
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -276,7 +321,7 @@ exports.create = async (req, res) => {
     const studentCode = await generateStudentCode();
     const cleanPhone = String(phone).replace(/[^0-9+]/g, '');
     const cleanWa = whatsapp_number ? String(whatsapp_number).replace(/[^0-9+]/g, '') : cleanPhone;
-    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(dob);
+    const cleanAge = resolveAge(dob, age);
     const selectedDate = status === 'selected' ? new Date() : null;
 
     const sql = `
@@ -397,7 +442,7 @@ exports.update = async (req, res) => {
       notes
     } = req.body;
 
-    const cleanAge = age ? parseInt(age, 10) : calculateAgeFromDob(dob);
+    const cleanAge = resolveAge(dob, age);
 
     const sql = `
       UPDATE tailoring_students SET
